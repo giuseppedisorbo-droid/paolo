@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, doc, getDoc, setDoc, updateDoc, serverTimestamp, query, where, onSnapshot, orderBy, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-const firebaseConfig = {apiKey: "AIzaSyB6CLQZHPG60LqsIKHAlS_Wt5OFXqfwqkw",authDomain: "antimo-6a86b.firebaseapp.com",projectId: "antimo-6a86b",storageBucket: "antimo-6a86b.firebasestorage.app",messagingSenderId: "671676764068",appId: "1:671676764068:web:95027e0babe3f30042fb31"};
+const firebaseConfig = {apiKey: "AIzaSyAh7dwRs1j7Vxib7OlB7mVRB-MNthAo5NA", authDomain: "peppe-ai-platform.firebaseapp.com", projectId: "peppe-ai-platform", storageBucket: "peppe-ai-platform.firebasestorage.app", messagingSenderId: "214462018633", appId: "1:214462018633:web:f224407eba3b107e27fb98", measurementId: "G-54RQ3L1EDW"};
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 let currentUser = null;
