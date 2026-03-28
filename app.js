@@ -29,9 +29,10 @@ async function init() {
     }
     Object.keys(appCache.people).forEach(id => {
         const p = appCache.people[id];
+        p.roles = p.roles || [];
         const hasAccess = p.appAccess === true || (p.appAccess === undefined && ['giuseppe', 'teresa', 'caterina', 'stefano', 'davide', 'paolo'].includes(id));
         if(p.active && hasAccess) {
-            let roleLbl = p.roles[0];
+            let roleLbl = p.roles[0] || 'Utente';
             if(id === 'giuseppe') roleLbl = 'Admin totale';
             else if(id === 'davide' || id === 'teresa') roleLbl = 'Supervisore';
             else if(id === 'stefano' || id === 'caterina') roleLbl = 'Approvatore';
