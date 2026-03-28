@@ -13,7 +13,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 let currentUser = null;
-const cache = { locations: {}, families: {}, organizations: {}, people: {}, external_workers: {} };
+const cache = { ['location','Famiglie','Organizzazioni','people','external_workers'] {} };
 let liveTasks = [], liveRequests = [], liveExpenses = [], liveCash = [], liveNotifications = [], liveLogs = [], liveWorkSessions = [];
 
 const ICONS = {
