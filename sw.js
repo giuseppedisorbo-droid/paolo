@@ -1,4 +1,4 @@
-const CACHE_NAME = 'peppe-system-v1';
+const CACHE_NAME = 'peppe-system-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -9,15 +9,30 @@ const ASSETS_TO_CACHE = [
 ];
 
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return Promise.all(ASSETS_TO_CACHE.map(url => {
-        return fetch(url).then(response => {
+        return fetch(url, {cache: 'no-cache'}).then(response => {
           if (!response.ok) throw new Error(`Fetch failed for ${url}`);
           return cache.put(url, response);
         }).catch(err => console.warn('Cache error for', url, err));
       }));
     })
+  );
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((name) => {
+          if (name !== CACHE_NAME) {
+            return caches.delete(name);
+          }
+        })
+      );
+    }).then(() => self.clients.claim())
   );
 });
 
