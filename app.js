@@ -21,23 +21,26 @@ async function init() {
         s.forEach(d => appCache[coll][d.id] = d.data());
     }));
     
-    const loginSelect = document.getElementById('loginSelect');
-    loginSelect.innerHTML = '<option value="">-- Seleziona Utente --</option>';
-    if (Object.keys(appCache.people).length === 0) {
-        loginSelect.innerHTML = '<option value="">(Database Vuoto - Esegui Seed)</option>';
-        alert("Attenzione: Il database Firestore (collezione 'people') risulta vuoto! Per favore esegui lo script di inizializzazione andando su /seed.html");
+    const needsSeed = Object.keys(appCache.people).length === 0 || Object.keys(appCache.organizations).length === 0;
+    if (needsSeed) {
+        loginSelect.innerHTML = '<option value="">(Database Incompleto - Esegui Seed)</option>';
+        alert("Attenzione: Il database Firestore (collezione 'people' o 'organizations') risulta vuoto o incompleto! Vai su /seed.html per inizializzare il DB della V3.");
+    } else {
+        loginSelect.innerHTML = '<option value="">-- Seleziona Utente --</option>';
     }
+    
     Object.keys(appCache.people).forEach(id => {
         const p = appCache.people[id];
         p.roles = p.roles || [];
-        const hasAccess = p.appAccess === true || (p.appAccess === undefined && ['giuseppe', 'teresa', 'caterina', 'stefano', 'davide', 'paolo'].includes(id));
-        if(p.active && hasAccess) {
-            let roleLbl = p.roles[0] || 'Utente';
+        const hasAccess = p.appAccess === true || (p.appAccess === undefined && ['giuseppe', 'teresa', 'caterina', 'stefano', 'davide', 'paolo', 'luca'].includes(id));
+        if(p.active !== false && hasAccess) {
+            let roleLbl = p.roles[0] || p.role || 'Utente';
             if(id === 'giuseppe') roleLbl = 'Admin totale';
             else if(id === 'davide' || id === 'teresa') roleLbl = 'Supervisore';
             else if(id === 'stefano' || id === 'caterina') roleLbl = 'Approvatore';
             else if(id === 'paolo') roleLbl = 'Operativo';
-            loginSelect.innerHTML += `<option value="${id}">${p.fullName} — ${roleLbl}</option>`;
+            const dispName = p.fullName || p.name || id;
+            loginSelect.innerHTML += `<option value="${id}">${dispName} — ${roleLbl}</option>`;
         }
     });
 
