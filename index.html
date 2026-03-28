@@ -1,10 +1,167 @@
 <!DOCTYPE html>
-<html>
+<html lang="it">
 <head>
-  <title>Progetto Paolo</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#2563eb">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icon.svg">
+    <link rel="manifest" href="manifest.json">
+    <title>Progetto Paolo V3</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-  <h1>Progetto Paolo</h1>
-  <p>Sistema operativo attivo.</p>
+    
+    <!-- Login Overlay (Cannot be closed until logged in) -->
+    <div id="loginOverlay" class="modal-fs open" style="z-index: 9999;">
+        <div class="modal-body" style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:100%; background:white;">
+            <div style="text-align: center; margin-bottom: 30px;">
+                <h1 style="color:var(--primary); font-size:2.5rem; margin-bottom:10px;">Peppe<br>System</h1>
+                <p style="color:var(--text-muted);">V3 Mobile Platform</p>
+            </div>
+            <select id="loginSelect" style="max-width: 300px;">
+                <option value="">Caricamento utenti...</option>
+            </select>
+            <button id="btnLogin" class="btn btn-primary" style="max-width:300px; margin-top:15px;">Accedi</button>
+        </div>
+    </div>
+
+    <!-- Top Header -->
+    <header class="top-header">
+        <h1 id="headerTitle">Home</h1>
+        <div style="display:flex; gap:15px; align-items:center;">
+            <div id="headerWallet" class="wallet-badge hidden">€ 0.00</div>
+            <button id="btnNotifs" style="background:none; border:none; font-size:1.5rem; position:relative; cursor:pointer;">🔔<span id="notifBadge" class="hidden" style="position:absolute; top:-5px; right:-5px; background:var(--danger); color:white; border-radius:50%; width:18px; height:18px; font-size:0.7rem; font-weight:bold; display:flex; align-items:center; justify-content:center;">0</span></button>
+        </div>
+    </header>
+    
+    <!-- Notification Panel -->
+    <div id="notifPanel" class="modal-fs">
+        <div class="modal-header"><h2 id="notifTitle">Notifiche</h2><button class="btn-close-modal" id="btnCloseNotif">&times;</button></div>
+        <div class="modal-body" id="notifList"></div>
+    </div>
+
+    <!-- VIEWS -->
+    
+    <!-- View 1: Tasks / Home (Worker & Admin) -->
+    <main id="view-home" class="view-section active">
+        <div id="homeAdminStats" class="hidden" style="margin-bottom:15px;">
+            <!-- For Admin: brief summary of requests / tasks -->
+        </div>
+        <div id="feedList">
+            <div class="text-center" style="color:var(--text-muted); margin-top:40px;">Caricamento...</div>
+        </div>
+    </main>
+
+    <!-- View 2: Messa in Opera / Calendario -->
+    <main id="view-agenda" class="view-section">
+        <h2 class="mb-4">Agenda Operativa</h2>
+        <div id="agendaList"></div>
+    </main>
+
+    <!-- View 3: Allocazioni / Cassa -->
+    <main id="view-finance" class="view-section">
+        <h2 class="mb-4">Ripartizione e Cassa</h2>
+        <div id="financeList"></div>
+    </main>
+
+    <!-- View 4: Rubrica / Directory -->
+    <main id="view-directory" class="view-section">
+        <h2 class="mb-4">Direttorio Proprietà</h2>
+        <div id="directoryList"></div>
+    </main>
+
+    <!-- View 5: Report (Admin only) -->
+    <main id="view-report" class="view-section">
+        <h2 class="mb-4">Report Operativo</h2>
+        <div id="reportContent"></div>
+    </main>
+
+    <!-- BOTTOM NAVIGATION -->
+    <nav class="bottom-nav" id="bottomNav">
+        <!-- Dynamic injection based on role -->
+    </nav>
+
+    <!-- FLOATING ACTION BUTTON (Context aware) -->
+    <button id="fabMain" class="fab">+</button>
+
+    <!-- FULLSCREEN MODALS -->
+
+    <!-- 1. Task Detail Modal -->
+    <div id="taskDetailModal" class="modal-fs">
+        <div class="modal-header">
+            <h2 id="taskModalTitle">Dettaglio</h2>
+            <button class="btn-close-modal" id="btnCloseTaskModal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="taskDetailContent"></div>
+            <div id="taskDetailActions" class="mt-4">
+                <!-- Worker buttons or Admin buttons injected here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Dynamic Bottom Sheet (Add Expense / Allocations / Close) -->
+    <div id="bsBackdrop" class="bs-backdrop"></div>
+    <div id="actionWizardModal" class="bottom-sheet">
+        <div class="modal-header" style="border-bottom:none; padding:0 0 15px 0;">
+            <h2 id="wizardTitle">Azione Rapida</h2>
+            <button class="btn-close-modal" id="btnCloseWizard">&times;</button>
+        </div>
+        <div id="wizardBody" style="max-height: 70vh; overflow-y: auto; padding-top:5px;">
+            <!-- Content Injected -->
+        </div>
+    </div>
+
+    <!-- AI Assist Modal -->
+    <div id="aiAssistModal" class="modal-fs">
+        <div class="modal-header" style="background:#8b5cf6; color:white;">
+            <h2 id="aiModalTitle" style="color:white; margin:0;">✨ Aiuto AI</h2>
+            <button class="btn-close-modal" id="btnCloseAiModal" style="color:white;">&times;</button>
+        </div>
+        <div class="modal-body" style="padding-top:10px;">
+            <div id="aiContextBanner" style="font-size:0.8rem; background:#ede9fe; color:#5b21b6; padding:8px 12px; border-radius:12px; margin-bottom:15px; font-weight:600;">Contesto: Home</div>
+            
+            <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:15px;">
+                <button class="btn btn-outline" style="padding:5px 10px; font-size:0.8rem; border-color:#8b5cf6; color:#8b5cf6; width:auto;" onclick="document.getElementById('aiInput').value='Come faccio a ...'">Come faccio a...</button>
+                <button class="btn btn-outline" style="padding:5px 10px; font-size:0.8rem; border-color:#8b5cf6; color:#8b5cf6; width:auto;" onclick="document.getElementById('aiInput').value='Ho un problema con ...'">Segnala problema</button>
+                <button class="btn btn-outline" style="padding:5px 10px; font-size:0.8rem; border-color:#8b5cf6; color:#8b5cf6; width:auto;" onclick="document.getElementById('aiInput').value='Crea una richiesta per ...'">Trasforma in richiesta</button>
+            </div>
+            
+            <textarea id="aiInput" style="width:100%; height:120px; border:2px solid #ddd; border-radius:12px; padding:12px; font-family:inherit; font-size:1rem; resize:none; margin-bottom:10px;" placeholder="Scrivi qui il tuo dubbio, problema o richiesta..."></textarea>
+            
+            <button id="btnSubmitAi" class="btn btn-primary" onclick="window.submitAiPrompt()" style="background:#8b5cf6; display:flex; align-items:center; justify-content:center; gap:8px;">✨ Chiedi all'AI</button>
+            <div id="aiLoadingIndicator" style="display:none; text-align:center; padding:10px; color:#8b5cf6; font-weight:bold;">L'AI sta pensando...</div>
+            
+            <div id="aiResponseContainer" class="mt-4" style="display:none;">
+                <div class="card" style="border-left:4px solid #8b5cf6; background:#f5f3ff;">
+                    <div id="aiResponseText" style="font-size:0.95rem; line-height:1.5; color:#333;"></div>
+                    <div id="aiSuggestedActions" class="mt-3"></div>
+                </div>
+            </div>
+            
+            <h4 class="mt-4" style="color:var(--text-muted); font-size:0.9rem; margin-bottom:10px;">Ultime Tue Interazioni</h4>
+            <div id="aiHistory" style="margin-top:5px; margin-bottom:40px;"></div>
+        </div>
+    </div>
+
+    <!-- AI FAB -->
+    <button id="fabAi" class="fab" style="bottom: 90px; right: 20px; z-index: 1000; background: #8b5cf6; box-shadow: 0 4px 10px rgba(139,92,246,0.4);" onclick="window.openAiModal()">✨</button>
+
+    <!-- Hidden Camera Input for PWA -->
+    <input type="file" id="nativeCameraInput" accept="image/*" capture="environment" style="display:none;">
+
+    <!-- PWA Service Worker -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('sw.js').catch(err => console.log('SW failed', err));
+        });
+      }
+    </script>
+    
+    <script type="module" src="app.js"></script>
 </body>
 </html>
