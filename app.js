@@ -23,7 +23,15 @@ async function init() {
     
     const loginSelect = document.getElementById('loginSelect');
     Object.keys(cache.people).forEach(id => {
-        if(cache.people[id].active) loginSelect.innerHTML += `<option value="${id}">${cache.people[id].fullName} (${cache.people[id].roles[0]})</option>`;
+        const p = cache.people[id];
+        if(p.active && p.appAccess) {
+            let roleLbl = p.roles[0];
+            if(id === 'giuseppe') roleLbl = 'Admin totale';
+            else if(id === 'davide' || id === 'teresa') roleLbl = 'Supervisore';
+            else if(id === 'stefano' || id === 'caterina') roleLbl = 'Approvatore';
+            else if(id === 'paolo') roleLbl = 'Operativo';
+            loginSelect.innerHTML += `<option value="${id}">${p.fullName} — ${roleLbl}</option>`;
+        }
     });
 
     document.getElementById('btnLogin').addEventListener('click', () => {
