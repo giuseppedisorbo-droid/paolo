@@ -23,6 +23,10 @@ async function init() {
     
     const loginSelect = document.getElementById('loginSelect');
     loginSelect.innerHTML = '<option value="">-- Seleziona Utente --</option>';
+    if (Object.keys(appCache.people).length === 0) {
+        loginSelect.innerHTML = '<option value="">(Database Vuoto - Esegui Seed)</option>';
+        alert("Attenzione: Il database Firestore (collezione 'people') risulta vuoto! Per favore esegui lo script di inizializzazione andando su /seed.html");
+    }
     Object.keys(appCache.people).forEach(id => {
         const p = appCache.people[id];
         const hasAccess = p.appAccess === true || (p.appAccess === undefined && ['giuseppe', 'teresa', 'caterina', 'stefano', 'davide', 'paolo'].includes(id));
