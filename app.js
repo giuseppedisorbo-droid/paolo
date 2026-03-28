@@ -212,10 +212,78 @@ function renderHome() {
 }
 
 window.taskCalendar = null;
+window.selectedAgendaDate = null;
+
+window.filterAgendaList = (dateStr) => {
+    window.selectedAgendaDate = dateStr;
+    const btn = document.getElementById('btnShowAllCards');
+    const title = document.getElementById('agendaListTitle');
+    if(dateStr) {
+        if(btn) btn.style.display = 'block';
+        if(title) {
+            const d = new Date(dateStr);
+            title.textContent = `Interventi del ${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+        }
+    } else {
+        if(btn) btn.style.display = 'none';
+        if(title) title.textContent = 'Prossimi Interventi';
+    }
+    renderAgendaCards();
+};
+
+const DAY_COLORS = [
+    { bg: '#a855f7', text: '#ffffff' }, // Dom 0
+    { bg: '#ef4444', text: '#ffffff' }, // Lun 1
+    { bg: '#f97316', text: '#ffffff' }, // Mar 2
+    { bg: '#fcd34d', text: '#000000' }, // Mer 3
+    { bg: '#10b981', text: '#ffffff' }, // Gio 4
+    { bg: '#0ea5e9', text: '#ffffff' }, // Ven 5
+    { bg: '#6366f1', text: '#ffffff' }  // Sab 6
+];
+
+function renderAgendaCards() {
+    const listEl = document.getElementById('agendaList');
+    if(!listEl) return;
+    listEl.innerHTML = '';
+    
+    let q = currentUser.roles.includes('technician') ? liveTasks.filter(t=>t.assignedTo===currentUser.id) : liveTasks;
+    q = q.filter(t => t.scheduledStart && t.status !== 'completed');
+    
+    if(window.selectedAgendaDate) {
+        q = q.filter(t => t.scheduledStart.startsWith(window.selectedAgendaDate));
+    }
+    
+    q.sort((a,b)=>a.scheduledStart.localeCompare(b.scheduledStart)).forEach(t => {
+        const d = new Date(t.scheduledStart);
+        const dayIdx = d.getDay();
+        const colors = DAY_COLORS[dayIdx];
+        
+        const loc = appCache.locations[t.locationId]?.name || 'N/D';
+        const ur = (t.priority === 'urgent' || t.priority === 'high') ? `<span class="status-badge badge-urgent" style="margin-left:5px;">🚨 URGENTE</span>` : '';
+        const assignedName = appCache.people[t.assignedTo]?.fullName || t.assignedTo || 'Nessuno';
+        
+        listEl.innerHTML += `
+        <div class="card" onclick="window.openTaskDetail('${t.id}')" style="background-color:${colors.bg}; color:${colors.text}; border-radius:12px; margin-bottom:12px; border:none;">
+            <div class="flex-between">
+                <div style="font-weight:bold; font-size:1.1rem;">🕒 ${t.scheduledStart.split('T')[1]} - ${d.getDate()}/${d.getMonth()+1}</div>
+                <div style="font-size:0.8rem; background:rgba(255,255,255,0.3); padding:3px 8px; border-radius:12px; font-weight:bold;">👤 ${assignedName}</div>
+            </div>
+            <div class="card-title mt-2" style="font-weight:800; font-size:1.15rem; color:${colors.text};">${t.title} ${ur}</div>
+            <div style="font-size:0.85rem; margin-top:5px; opacity:0.95;">📍 ${loc}</div>
+            <div style="font-size:0.85rem; margin-top:5px; font-weight:600; opacity:0.95;">${t.status === 'pending_approval' ? '⏳ Da Approvare' : '✅ Assegnato'}</div>
+        </div>`;
+    });
+    
+    if(q.length === 0) {
+        listEl.innerHTML = `<div class="text-center text-muted" style="padding:20px;">Nessun intervento.</div>`;
+    }
+}
 
 function renderAgenda() {
     const btn = document.getElementById('btnWorkerSessionCal');
     if(btn) btn.style.display = currentUser.roles.includes('technician') ? 'inline-flex' : 'none';
+
+    renderAgendaCards();
 
     const calEl = document.getElementById('calendarContainer');
     if(!calEl) return;
@@ -224,15 +292,17 @@ function renderAgenda() {
     const q = currentUser.roles.includes('technician') ? liveTasks.filter(t=>t.assignedTo===currentUser.id) : liveTasks;
     
     q.filter(t => t.scheduledStart).forEach(t => {
-        let isUrgent = t.priority === 'urgent' || t.priority === 'high';
-        let color = isUrgent ? '#ef4444' : (t.status === 'completed' ? '#10b981' : '#4338ca');
+        const d = new Date(t.scheduledStart);
+        const dayIdx = d.getDay();
+        const colors = DAY_COLORS[dayIdx];
         events.push({
             id: t.id,
             title: t.title,
             start: t.scheduledStart,
             end: t.scheduledEnd || t.scheduledStart,
-            backgroundColor: color,
-            borderColor: color,
+            backgroundColor: colors.bg,
+            borderColor: colors.bg,
+            textColor: colors.text,
             extendedProps: { taskId: t.id }
         });
     });
@@ -252,6 +322,10 @@ function renderAgenda() {
                 events: events,
                 eventClick: function(info) {
                     window.openTaskDetail(info.event.extendedProps.taskId);
+                },
+                dateClick: function(info) {
+                    window.filterAgendaList(info.dateStr);
+                    document.getElementById('agendaListTitle').scrollIntoView({behavior: 'smooth', block: 'start'});
                 }
             });
             window.taskCalendar.render();
@@ -489,7 +563,7 @@ function openNewRequestWizard() {
         <button type="button" class="btn btn-secondary mb-2" onclick="window.openRichDescriptionModal()">✏️ Aggiungi Dettagli/Allegati (Opzionale)</button>
         <div id="rdSummary" class="text-muted" style="font-size:0.8rem; margin-bottom:12px; display:none; font-weight:bold;"></div>
         
-        <select id="rl" required><option value="">-- Luogo --</option>${Object.values(appCache.locations).map(l=>`<option value="${l.id}">${l.name}</option>`).join('')}</select>
+        <input type="hidden" id="rl" value="">
         
         <label>Proprietari/Beneficiari</label>
         <div style="max-height:200px;overflow-y:auto;border:1px solid #ccc;padding:10px;margin-bottom:10px;">
