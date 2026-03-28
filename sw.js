@@ -11,7 +11,12 @@ const ASSETS_TO_CACHE = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
+      return Promise.all(ASSETS_TO_CACHE.map(url => {
+        return fetch(url).then(response => {
+          if (!response.ok) throw new Error(`Fetch failed for ${url}`);
+          return cache.put(url, response);
+        }).catch(err => console.warn('Cache error for', url, err));
+      }));
     })
   );
 });

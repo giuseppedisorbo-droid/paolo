@@ -1,26 +1,10 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, doc, getDoc, setDoc, updateDoc, serverTimestamp, query, where, onSnapshot, orderBy, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-const firebaseConfig = {
-  apiKey: "AIzaSyAh7dwRs1j7Vxib70lB7mVRB-MNthAo5NA",
-  authDomain: "peppe-ai-platform.firebaseapp.com",
-  projectId: "peppe-ai-platform",
-  storageBucket: "peppe-ai-platform.firebasestorage.app",
-  messagingSenderId: "214462018633",
-  appId: "1:214462018633:web:f224407eba3b107e27fb98",
-  measurementId: "G-54RQ3L1EDW"
-};
-
+const firebaseConfig = {apiKey: "AIzaSyB6CLQZHPG60LqsIKHAlS_Wt5OFXqfwqkw",authDomain: "antimo-6a86b.firebaseapp.com",projectId: "antimo-6a86b",storageBucket: "antimo-6a86b.firebasestorage.app",messagingSenderId: "671676764068",appId: "1:671676764068:web:95027e0babe3f30042fb31"};
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 let currentUser = null;
-
-const Cache = {
-  location: {},
-  Famiglie: {},
-  Organizzazioni: {},
-  people: {},
-  external_workers: {}
-};
+const appCache = { locations: {}, families: {}, organizations: {}, people: {}, external_workers: {} };
 let liveTasks = [], liveRequests = [], liveExpenses = [], liveCash = [], liveNotifications = [], liveLogs = [], liveWorkSessions = [];
 
 const ICONS = {
@@ -34,12 +18,12 @@ const ICONS = {
 async function init() {
     await Promise.all(['locations','families','organizations','people','external_workers'].map(async coll => {
         const s = await getDocs(collection(db, coll));
-        s.forEach(d => cache[coll][d.id] = d.data());
+        s.forEach(d => appCache[coll][d.id] = d.data());
     }));
     
     const loginSelect = document.getElementById('loginSelect');
-    Object.keys(cache.people).forEach(id => {
-        const p = cache.people[id];
+    Object.keys(appCache.people).forEach(id => {
+        const p = appCache.people[id];
         if(p.active && p.appAccess) {
             let roleLbl = p.roles[0];
             if(id === 'giuseppe') roleLbl = 'Admin totale';
@@ -52,7 +36,7 @@ async function init() {
 
     document.getElementById('btnLogin').addEventListener('click', () => {
         if(!loginSelect.value) return;
-        currentUser = { id: loginSelect.value, ...cache.people[loginSelect.value] };
+        currentUser = { id: loginSelect.value, ...appCache.people[loginSelect.value] };
         document.getElementById('loginOverlay').classList.remove('open');
         setTimeout(() => document.getElementById('loginOverlay').style.display='none', 300);
         boot();
@@ -111,7 +95,7 @@ function boot() {
     renderDirectory();
 }
 
-const getEntTags=(fam,org)=>`${(fam||[]).map(x=>`<span class="entity-tag family">${cache.families[x]?.name}</span>`).join('')}${(org||[]).map(x=>`<span class="entity-tag org">${cache.organizations[x]?.name}</span>`).join('')}`;
+const getEntTags=(fam,org)=>`${(fam||[]).map(x=>`<span class="entity-tag family">${appCache.families[x]?.name}</span>`).join('')}${(org||[]).map(x=>`<span class="entity-tag org">${appCache.organizations[x]?.name}</span>`).join('')}`;
 
 function renderHome() {
     const feed = document.getElementById('feedList'); feed.innerHTML='';
@@ -144,9 +128,9 @@ function renderHome() {
     };
 
     if(isAdmin || isSupervisor || isDomainApprover) {
-        liveRequests.filter(r=> (r.status==='new'||r.status==='approved') && canSee(r)).forEach(r => feed.innerHTML += `<div class="card"><div class="card-header"><span class="status-badge status-${r.status}">${r.status}</span> <span style="font-size:0.8rem;color:var(--text-muted)">📍 ${cache.locations[r.locationId]?.name||'N/D'}</span></div><div class="card-title">${r.title}</div><p style="font-size:0.9rem;color:#666">${r.description}</p><div class="entity-tags">${getEntTags(r.familyIds,r.organizationIds)}</div><button class="btn btn-primary mt-2" onclick="window.openApproveWizard('${r.id}')">Assegna e Pianifica</button></div>`);
+        liveRequests.filter(r=> (r.status==='new'||r.status==='approved') && canSee(r)).forEach(r => feed.innerHTML += `<div class="card"><div class="card-header"><span class="status-badge status-${r.status}">${r.status}</span> <span style="font-size:0.8rem;color:var(--text-muted)">📍 ${appCache.locations[r.locationId]?.name||'N/D'}</span></div><div class="card-title">${r.title}</div><p style="font-size:0.9rem;color:#666">${r.description}</p><div class="entity-tags">${getEntTags(r.familyIds,r.organizationIds)}</div><button class="btn btn-primary mt-2" onclick="window.openApproveWizard('${r.id}')">Assegna e Pianifica</button></div>`);
         liveTasks.filter(t=>t.status==='pending_approval' && canSee(t)).forEach(t => feed.innerHTML += `<div class="card" style="border-left: 5px solid var(--warning)"><div class="card-header"><span class="status-badge" style="background:var(--warning); color:white;">Proposto da Paolo</span></div><div class="card-title">${t.title}</div><div class="entity-tags">${getEntTags(t.familyIds,t.organizationIds)}</div><button class="btn btn-success mt-2" onclick="window.execAction('APPROVE_PROPOSED','${t.id}')">👍 Approva (Inizia Oggi)</button></div>`);
-        liveTasks.filter(t=>t.status!=='completed' && t.status!=='pending_approval' && canSee(t)).forEach(t => feed.innerHTML += `<div class="card" onclick="window.openTaskDetail('${t.id}')"><div class="card-header"><span class="status-badge status-${t.status}">${t.status}</span> <div style="text-align:right"><div style="font-weight:bold;color:var(--primary);font-size:0.8rem">${t.scheduledStart?new Date(t.scheduledStart).toLocaleDateString():''}</div><span style="font-size:0.75rem;color:var(--text-muted)">📍 ${cache.locations[t.locationId]?.name}</span></div></div><div class="card-title">${t.title}</div><div class="entity-tags">${getEntTags(t.familyIds,t.organizationIds)}</div></div>`);
+        liveTasks.filter(t=>t.status!=='completed' && t.status!=='pending_approval' && canSee(t)).forEach(t => feed.innerHTML += `<div class="card" onclick="window.openTaskDetail('${t.id}')"><div class="card-header"><span class="status-badge status-${t.status}">${t.status}</span> <div style="text-align:right"><div style="font-weight:bold;color:var(--primary);font-size:0.8rem">${t.scheduledStart?new Date(t.scheduledStart).toLocaleDateString():''}</div><span style="font-size:0.75rem;color:var(--text-muted)">📍 ${appCache.locations[t.locationId]?.name}</span></div></div><div class="card-title">${t.title}</div><div class="entity-tags">${getEntTags(t.familyIds,t.organizationIds)}</div></div>`);
     } else if(isWorker) {
         const todayStr = new Date().toISOString().split('T')[0];
         let validTasks = liveTasks.filter(t => t.assignedTo === currentUser.id && t.status !== 'completed');
@@ -184,7 +168,7 @@ function renderHome() {
             <div class="card" style="border-left: 5px solid ${t.priority==='urgent'||t.priority==='high'?'var(--danger)':'var(--primary)'}">
                 <div class="card-header">
                     <div><span class="status-badge status-${t.status}">${t.status}</span> ${t.priority==='urgent'||t.priority==='high'?'<span class="status-badge badge-urgent">🚨 URGENTE</span>':''} ${t.needsMaterial?'<span class="status-badge badge-material">📦 NO MAT</span>':''}</div>
-                    <div style="text-align:right"><span style="font-size:0.85rem; font-weight:bold; color:var(--text-main); display:block;">${t.scheduledStart?`🕒 ${new Date(t.scheduledStart).getHours().toString().padStart(2,'0')}:${new Date(t.scheduledStart).getMinutes().toString().padStart(2,'0')}`:'Nessun Orario'}</span><span style="font-size:0.75rem; color:var(--text-muted)">📍 ${cache.locations[t.locationId]?.name||'N/D'}</span></div>
+                    <div style="text-align:right"><span style="font-size:0.85rem; font-weight:bold; color:var(--text-main); display:block;">${t.scheduledStart?`🕒 ${new Date(t.scheduledStart).getHours().toString().padStart(2,'0')}:${new Date(t.scheduledStart).getMinutes().toString().padStart(2,'0')}`:'Nessun Orario'}</span><span style="font-size:0.75rem; color:var(--text-muted)">📍 ${appCache.locations[t.locationId]?.name||'N/D'}</span></div>
                 </div>
                 <div class="card-title" onclick="window.openTaskDetail('${t.id}')" style="cursor:pointer; margin-bottom:8px;">${t.title}</div>
                 <div class="entity-tags" style="margin-bottom:10px;">${getEntTags(t.familyIds,t.organizationIds)}</div>
@@ -198,7 +182,7 @@ function renderHome() {
 
         if(morning.length > 0) { html += '<h3 style="margin-bottom:12px; color:var(--primary); font-size:1.1rem; border-bottom:2px solid var(--border); padding-bottom:5px;">☀️ Mattina</h3>'; morning.forEach(t => html += buildQA(t)); }
         if(afternoon.length > 0) { html += '<h3 style="margin-top:20px; margin-bottom:12px; color:var(--primary); font-size:1.1rem; border-bottom:2px solid var(--border); padding-bottom:5px;">🌙 Pomeriggio</h3>'; afternoon.forEach(t => html += buildQA(t)); }
-        if(pendingProps.length > 0) { html += '<h3 style="margin-top:20px; margin-bottom:12px; color:var(--warning); font-size:1.1rem; border-bottom:2px solid var(--border); padding-bottom:5px;">🟡 Proposti (In Attesa)</h3>'; pendingProps.forEach(t => html += `<div class="card" style="border-left: 5px solid var(--warning)"><div class="card-header"><div><span class="status-badge" style="background:var(--warning); color:white;">⏳ IN ATTESA</span></div><div style="text-align:right"><span style="font-size:0.75rem; color:var(--text-muted)">📍 ${cache.locations[t.locationId]?.name||'N/D'}</span></div></div><div class="card-title">${t.title}</div><div class="entity-tags" style="margin-bottom:10px;">${getEntTags(t.familyIds,t.organizationIds)}</div></div>`); }
+        if(pendingProps.length > 0) { html += '<h3 style="margin-top:20px; margin-bottom:12px; color:var(--warning); font-size:1.1rem; border-bottom:2px solid var(--border); padding-bottom:5px;">🟡 Proposti (In Attesa)</h3>'; pendingProps.forEach(t => html += `<div class="card" style="border-left: 5px solid var(--warning)"><div class="card-header"><div><span class="status-badge" style="background:var(--warning); color:white;">⏳ IN ATTESA</span></div><div style="text-align:right"><span style="font-size:0.75rem; color:var(--text-muted)">📍 ${appCache.locations[t.locationId]?.name||'N/D'}</span></div></div><div class="card-title">${t.title}</div><div class="entity-tags" style="margin-bottom:10px;">${getEntTags(t.familyIds,t.organizationIds)}</div></div>`); }
         feed.innerHTML = html;
     } else {
         liveTasks.filter(t=> t.requestedBy===currentUser.id || (t.familyIds||[]).some(b=>myFam.includes(b)) || (t.organizationIds||[]).some(b=>myOrgs.includes(b)))
@@ -243,7 +227,7 @@ function renderFinance() {
     }
     if(isSuper) {
         let h = `<h3>Fondi Operatori</h3>`;
-        Object.values(cache.people).filter(p=>p.roles.includes('technician') && p.id!=='worker_luca').forEach(w => {
+        Object.values(appCache.people).filter(p=>p.roles.includes('technician') && p.id!=='worker_luca').forEach(w => {
             const cList = liveCash.filter(c=>c.givenTo===w.id).sort((a,b)=>b.createdAt-a.createdAt);
             const bal = cList.length > 0 ? cList[0].balanceAfter : 0;
             h += `<div class="card flex-between" style="align-items:center;"><div><strong>${w.fullName}</strong><div style="font-size:1.2rem; color:${bal<0?'var(--danger)':'var(--success)'}; font-weight:bold;">€ ${bal.toFixed(2)}</div></div> <button class="btn btn-info" style="width:auto; padding:8px 15px;" onclick="window.topUpWallet('${w.id}')">Ricarica Fondo</button></div>`;
@@ -274,7 +258,7 @@ function renderFinance() {
                     <strong>€ ${e.amount.toFixed(2)}</strong>
                     ${(e.status==='pending_approval') ? `<span class="status-badge" style="background:var(--warning); color:white;">⏳ DA APPROVARE</span>` : `<span class="status-badge status-new">DA ALLOCARE</span>`}
                 </div>
-                <div class="card-meta mt-2">Da: ${cache.people[e.paidBy]?.shortName || e.paidBy} | ${e.description}</div>
+                <div class="card-meta mt-2">Da: ${appCache.people[e.paidBy]?.shortName || e.paidBy} | ${e.description}</div>
                 ${!e.receiptUrl ? `<div class="mt-2"><span class="status-badge" style="background:#fee2e2; color:#b91c1c;">⚠️ NESSUN SCONTRINO</span></div>` : `<div class="mt-2"><span class="status-badge" style="background:#d1fae5; color:#059669;">🧾 SCONTRINO OK</span></div>`}
                 <button class="btn btn-primary mt-2" onclick="window.openAllocationWizard('${e.id}', 'expenses')">Verifica & Ripartisci Costo</button>
             </div>`;
@@ -283,7 +267,7 @@ function renderFinance() {
         const unallocW = liveWorkSessions.filter(w => !w.allocations || w.allocations.length === 0);
         if(unallocW.length === 0) h += `<p class="text-muted text-center">Tutti i manovali sono stati allocati.</p>`;
         unallocW.forEach(w => {
-            const wName = cache.external_workers[w.workerId]?.fullName || w.workerId.toUpperCase();
+            const wName = appCache.external_workers[w.workerId]?.fullName || w.workerId.toUpperCase();
             h += `<div class="card" style="border-left: 4px solid var(--primary)"><div class="flex-between"><strong>€ ${w.totalCost.toFixed(2)}</strong><span class="status-badge status-new">DA ALLOCARE</span></div><div class="card-meta mt-2">Manovale: <strong>${wName}</strong> | In Data: ${w.date}</div><button class="btn btn-primary mt-2" onclick="window.openAllocationWizard('${w.id}', 'work_sessions')">Verifica & Ripartisci Costo</button></div>`;
         });
         fl.innerHTML = h;
@@ -292,7 +276,7 @@ function renderFinance() {
 
 function renderDirectory() {
     const d = document.getElementById('directoryList'); d.innerHTML='';
-    ['organizations','families','locations'].forEach(k => Object.values(cache[k]).forEach(o => d.innerHTML += `<div class="card mb-2 flex-between"><strong>${o.name}</strong><span class="entity-tag">${k}</span></div>`));
+    ['organizations','families','locations'].forEach(k => Object.values(appCache[k]).forEach(o => d.innerHTML += `<div class="card mb-2 flex-between"><strong>${o.name}</strong><span class="entity-tag">${k}</span></div>`));
 }
 
 function renderReport() {
@@ -336,7 +320,7 @@ function renderReport() {
             <h3 style="color:var(--primary); margin-bottom:10px;">💸 Sintesi Finanziaria</h3>
             <div class="flex-between" style="padding:8px 0; border-bottom:1px solid #eee;"><span>Spese Materiali Tot.</span> <strong style="font-size:1.1rem;">€ ${expTotal.toFixed(2)}</strong></div>
             <div class="flex-between" style="padding:8px 0; border-bottom:1px solid #eee;"><span>Costi Manovalanza Tot.</span> <strong style="color:var(--danger);">€ ${workerCostTotal.toFixed(2)}</strong></div>
-            <div style="padding:0 0 10px 10px; font-size:0.85rem; color:#666;">${Object.entries(workerCostMap).map(([k,v])=>`↳ ${cache.external_workers[k]?.fullName||k}: €${v.toFixed(2)}`).join('<br>')}</div>
+            <div style="padding:0 0 10px 10px; font-size:0.85rem; color:#666;">${Object.entries(workerCostMap).map(([k,v])=>`↳ ${appCache.external_workers[k]?.fullName||k}: €${v.toFixed(2)}`).join('<br>')}</div>
             <div class="flex-between" style="padding:8px 0; border-bottom:1px solid #eee;"><span>Approvate/Ripartite</span> <strong style="color:var(--success);">€ ${expApproved.toFixed(2)}</strong></div>
             <div class="flex-between" style="padding:8px 0;"><span>Attesa Scontrino/Verifica</span> <strong style="color:var(--warning);">€ ${expPending.toFixed(2)}</strong></div>
         </div>
@@ -346,19 +330,19 @@ function renderReport() {
             <h4 style="margin-top:10px; font-size:0.9rem; color:#666;">Per Famiglia</h4>
             <div style="margin-bottom:10px;">
                 ${Object.keys(sumsFam).length === 0 ? '<div class="text-muted" style="font-size:0.8rem;">Nessun costo ripartito.</div>' : ''}
-                ${Object.entries(sumsFam).map(([k,v])=>`<div class="flex-between" style="padding:6px 0; border-bottom:1px dashed #eee;"><span style="font-size:0.85rem;">${cache.families[k]?.name}</span><strong>€ ${v.toFixed(2)}</strong></div>`).join('')}
+                ${Object.entries(sumsFam).map(([k,v])=>`<div class="flex-between" style="padding:6px 0; border-bottom:1px dashed #eee;"><span style="font-size:0.85rem;">${appCache.families[k]?.name}</span><strong>€ ${v.toFixed(2)}</strong></div>`).join('')}
             </div>
             <h4 style="margin-top:15px; font-size:0.9rem; color:#666;">Per Organizzazione</h4>
             <div>
                 ${Object.keys(sumsOrg).length === 0 ? '<div class="text-muted" style="font-size:0.8rem;">Nessun costo ripartito.</div>' : ''}
-                ${Object.entries(sumsOrg).map(([k,v])=>`<div class="flex-between" style="padding:6px 0; border-bottom:1px dashed #eee;"><span style="font-size:0.85rem;">${cache.organizations[k]?.name}</span><strong>€ ${v.toFixed(2)}</strong></div>`).join('')}
+                ${Object.entries(sumsOrg).map(([k,v])=>`<div class="flex-between" style="padding:6px 0; border-bottom:1px dashed #eee;"><span style="font-size:0.85rem;">${appCache.organizations[k]?.name}</span><strong>€ ${v.toFixed(2)}</strong></div>`).join('')}
             </div>
         </div>
 
         <div class="card mb-4" style="background:#f8fafc; border:1px solid #e2e8f0;">
             <h3 style="color:var(--primary); margin-bottom:10px;">📍 Operatività per Luogo</h3>
             ${Object.keys(opsByLoc).length === 0 ? '<div class="text-muted" style="font-size:0.8rem;">Nessuna operazione registrata.</div>' : ''}
-            ${Object.entries(opsByLoc).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="flex-between" style="padding:6px 0; border-bottom:1px dashed #eee;"><span style="font-size:0.85rem;">${cache.locations[k]?.name||k}</span><span class="entity-tag location">${v} Interv.</span></div>`).join('')}
+            ${Object.entries(opsByLoc).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="flex-between" style="padding:6px 0; border-bottom:1px dashed #eee;"><span style="font-size:0.85rem;">${appCache.locations[k]?.name||k}</span><span class="entity-tag location">${v} Interv.</span></div>`).join('')}
         </div>
 
         <button class="btn btn-outline" style="margin-bottom:20px;" onclick="alert('Export CSV / Struttura Dati pronta nel database Firebase!')">📥 Esporta Dati</button>
@@ -369,7 +353,7 @@ window.openTaskDetail = (taskId) => {
     const t = liveTasks.find(x=>x.id===taskId);
     const ev = liveExpenses.filter(e=>e.taskId===taskId);
     const expHtml = ev.length===0?'Nessuna spesa.':ev.map(e=>`<div class="flex-between"><span>${e.description}</span><strong>€${e.amount.toFixed(2)}</strong></div><div style="font-size:0.75rem; color:var(--text-muted)">${(e.allocations||[]).map(a=>`${a.entityId}(${a.percentage.toFixed(0)}%)`).join(', ')}</div>`).join('');
-    let supW = ``; if(t.supportWorkers && t.supportWorkers.length > 0) { supW = `<div class="mt-2"><span style="font-size:0.8rem; color:#666;">👨‍🔧 Supporto:</span> ${t.supportWorkers.map(w=>`<span class="entity-tag" style="background:#e0f2fe; color:#1e40af;">${cache.external_workers[w]?.fullName||w}</span>`).join(' ')}</div>`; }
+    let supW = ``; if(t.supportWorkers && t.supportWorkers.length > 0) { supW = `<div class="mt-2"><span style="font-size:0.8rem; color:#666;">👨‍🔧 Supporto:</span> ${t.supportWorkers.map(w=>`<span class="entity-tag" style="background:#e0f2fe; color:#1e40af;">${appCache.external_workers[w]?.fullName||w}</span>`).join(' ')}</div>`; }
     
     let acts = '';
     const isSuper = currentUser.roles.includes('admin') || currentUser.roles.includes('owner') || currentUser.roles.includes('management_control') || currentUser.roles.includes('admin_support') || currentUser.roles.includes('domain_approver');
@@ -403,7 +387,7 @@ window.execAction = async (act, id) => {
 function openNewRequestWizard() {
     const b = document.getElementById('wizardBody');
     document.getElementById('wizardTitle').textContent="Nuova Richiesta";
-    b.innerHTML = `<form id="wizF"><input type="text" id="rt" placeholder="Titolo" required><textarea id="rd" placeholder="Descrizione" rows="3" required></textarea><select id="rl" required><option value="">-- Luogo --</option>${Object.values(cache.locations).map(l=>`<option value="${l.id}">${l.name}</option>`).join('')}</select><label>Proprietari/Beneficiari</label><div style="max-height:200px;overflow-y:auto;border:1px solid #ccc;padding:10px;margin-bottom:10px;">${Object.values(cache.organizations).map(o=>`<label class="check-item"><input type="checkbox" value="org_${o.id}">${o.name}</label>`).join('')}${Object.values(cache.families).map(f=>`<label class="check-item"><input type="checkbox" value="fam_${f.id}">${f.name}</label>`).join('')}</div><button type="submit" class="btn btn-primary">Invia Richiesta</button></form>`;
+    b.innerHTML = `<form id="wizF"><input type="text" id="rt" placeholder="Titolo" required><textarea id="rd" placeholder="Descrizione" rows="3" required></textarea><select id="rl" required><option value="">-- Luogo --</option>${Object.values(appCache.locations).map(l=>`<option value="${l.id}">${l.name}</option>`).join('')}</select><label>Proprietari/Beneficiari</label><div style="max-height:200px;overflow-y:auto;border:1px solid #ccc;padding:10px;margin-bottom:10px;">${Object.values(appCache.organizations).map(o=>`<label class="check-item"><input type="checkbox" value="org_${o.id}">${o.name}</label>`).join('')}${Object.values(appCache.families).map(f=>`<label class="check-item"><input type="checkbox" value="fam_${f.id}">${f.name}</label>`).join('')}</div><button type="submit" class="btn btn-primary">Invia Richiesta</button></form>`;
     document.getElementById('wizF').addEventListener('submit', async (e) => {
         e.preventDefault();
         const checks = Array.from(b.querySelectorAll('input[type=checkbox]:checked')).map(x=>x.value);
@@ -427,7 +411,7 @@ window.openApproveWizard = (reqId) => {
     const r = liveRequests.find(x=>x.id===reqId);
     const b = document.getElementById('wizardBody'); document.getElementById('wizardTitle').textContent="Assegna";
     const d=new Date(); d.setDate(d.getDate()+1); d.setHours(8,0,0,0); const iso=(new Date(d-d.getTimezoneOffset()*60000)).toISOString().slice(0,16);
-    b.innerHTML = `<form id="waF"><select id="waw" required>${Object.values(cache.people).filter(p=>p.roles.includes('technician')).map(p=>`<option value="${p.id}">${p.fullName}</option>`).join('')}</select><input type="datetime-local" id="was" value="${iso}" required><button type="submit" class="btn btn-success mt-4">Assegna e Crea Task</button></form>`;
+    b.innerHTML = `<form id="waF"><select id="waw" required>${Object.values(appCache.people).filter(p=>p.roles.includes('technician')).map(p=>`<option value="${p.id}">${p.fullName}</option>`).join('')}</select><input type="datetime-local" id="was" value="${iso}" required><button type="submit" class="btn btn-success mt-4">Assegna e Crea Task</button></form>`;
     b.querySelector('#waF').addEventListener('submit', async (e) => {
         e.preventDefault();
         await updateDoc(doc(db,"requests",reqId),{status:'assigned'});
@@ -440,8 +424,8 @@ window.openApproveWizard = (reqId) => {
 window.openExpenseWizard = (taskId=null) => {
     const b = document.getElementById('wizardBody'); document.getElementById('wizardTitle').textContent="Aggiungi Spesa";
     const opts = liveTasks.filter(t=>t.status!=='completed').map(t=>`<option value="${t.id}" ${t.id===taskId?'selected':''}>${t.title}</option>`).join('');
-    const fams = Object.values(cache.families).map(f=>`<label class="check-item"><input type="checkbox" class="we-alloc" value="fam_${f.id}">${f.name}</label>`).join('');
-    const orgs = Object.values(cache.organizations).map(o=>`<label class="check-item"><input type="checkbox" class="we-alloc" value="org_${o.id}">${o.name}</label>`).join('');
+    const fams = Object.values(appCache.families).map(f=>`<label class="check-item"><input type="checkbox" class="we-alloc" value="fam_${f.id}">${f.name}</label>`).join('');
+    const orgs = Object.values(appCache.organizations).map(o=>`<label class="check-item"><input type="checkbox" class="we-alloc" value="org_${o.id}">${o.name}</label>`).join('');
     b.innerHTML = `<form id="weF">
         <label>Categoria</label>
         <select id="weCat"><option value="materiali">Materiali / Generico</option><option value="carburante">Carburante Veicolo</option></select>
@@ -564,7 +548,7 @@ window.openAllocationWizard = (itemId, coll='expenses') => {
     if(coll==='expenses' && e.taskId) { const t=liveTasks.find(x=>x.id===e.taskId); if(t) autoS=[...(t.familyIds||[]).map(x=>'fam_'+x), ...(t.organizationIds||[]).map(x=>'org_'+x)]; }
     if(coll==='work_sessions' && e.tasks) { e.tasks.forEach(tid=>{const t=liveTasks.find(x=>x.id===tid); if(t){ (t.familyIds||[]).forEach(x=>{if(!autoS.includes('fam_'+x))autoS.push('fam_'+x)}); (t.organizationIds||[]).forEach(x=>{if(!autoS.includes('org_'+x))autoS.push('org_'+x)}); }}); }
     
-    b.innerHTML = `<h2 class="text-center" style="color:var(--danger);">€${(e.amount||e.totalCost).toFixed(2)}</h2><div class="mt-4">${Object.values(cache.families).map(f=>`<label class="check-item flex-between">Fam: ${f.name} <input type="checkbox" class="wa-sel" value="fam_${f.id}" ${autoS.includes('fam_'+f.id)?'checked':''}></label>`).join('')}${Object.values(cache.organizations).map(o=>`<label class="check-item flex-between">Az: ${o.name} <input type="checkbox" class="wa-sel" value="org_${o.id}" ${autoS.includes('org_'+o.id)?'checked':''}></label>`).join('')}</div><div id="waRes" class="text-center mt-4 font-bold text-primary"></div><button id="waBtn" class="btn btn-primary mt-4">Salva Divisione Equa</button>`;
+    b.innerHTML = `<h2 class="text-center" style="color:var(--danger);">€${(e.amount||e.totalCost).toFixed(2)}</h2><div class="mt-4">${Object.values(appCache.families).map(f=>`<label class="check-item flex-between">Fam: ${f.name} <input type="checkbox" class="wa-sel" value="fam_${f.id}" ${autoS.includes('fam_'+f.id)?'checked':''}></label>`).join('')}${Object.values(appCache.organizations).map(o=>`<label class="check-item flex-between">Az: ${o.name} <input type="checkbox" class="wa-sel" value="org_${o.id}" ${autoS.includes('org_'+o.id)?'checked':''}></label>`).join('')}</div><div id="waRes" class="text-center mt-4 font-bold text-primary"></div><button id="waBtn" class="btn btn-primary mt-4">Salva Divisione Equa</button>`;
     
     const upd = () => { const c = b.querySelectorAll('.wa-sel:checked').length; const baseCost=e.amount||e.totalCost; b.querySelector('#waRes').textContent = c>0 ? `Quota: €${(baseCost/c).toFixed(2)} (${(100/c).toFixed(1)}%)` : 'Seleziona!'; };
     b.querySelectorAll('.wa-sel').forEach(x=>x.addEventListener('change', upd)); upd();
@@ -596,7 +580,7 @@ window.attachReceipt = async (expId) => {
 };
 
 window.topUpWallet = async (workerId) => {
-    const w = cache.people[workerId];
+    const w = appCache.people[workerId];
     if(confirm(`Versare Acconto Cassa di €500 a ${w.fullName}?`)) {
         const cList = liveCash.filter(z=>z.givenTo===workerId).sort((a,b)=>b.createdAt-a.createdAt);
         const oldBal = cList.length > 0 ? cList[0].balanceAfter : 0;
@@ -622,7 +606,7 @@ window.openWorkerSessionWizard = () => {
     const myTodayTasks = liveTasks.filter(t=>t.assignedTo===currentUser.id && t.status!=='completed');
     const taskChecks = myTodayTasks.map(t=>`<label class="check-item"><input type="checkbox" value="${t.id}"> ${t.title}</label>`).join('');
     if(myTodayTasks.length===0) return alert("Non hai task attivi a cui associare il manovale!");
-    const wOpts = Object.values(cache.external_workers).filter(w=>w.active).map(w=>`<option value="${w.id}" data-rate="${w.dailyRate}">${w.fullName}</option>`).join('');
+    const wOpts = Object.values(appCache.external_workers).filter(w=>w.active).map(w=>`<option value="${w.id}" data-rate="${w.dailyRate}">${w.fullName}</option>`).join('');
     b.innerHTML = `<form id="wwF">
         <label>Seleziona Manovale</label>
         <select id="wwn" required><option value="">-- Scegliere Manovale --</option>${wOpts}</select>
@@ -641,7 +625,7 @@ window.openWorkerSessionWizard = () => {
         if(tks.length===0) return alert("Devi associare il manovale ad almeno un task!");
         const amt = parseFloat(b.querySelector('#wwc').value);
         const wId = b.querySelector('#wwn').value;
-        const wName = cache.external_workers[wId]?.fullName || wId;
+        const wName = appCache.external_workers[wId]?.fullName || wId;
         const nw = await addDoc(collection(db,"work_sessions"),{workerId:wId, date:new Date().toISOString().split('T')[0], assignedBy:currentUser.id, tasks:tks, dailyRate:amt, totalCost:amt, status:'worked', allocations:[], createdAt:serverTimestamp()});
         for(let tid of tks) {
             const tkObj = liveTasks.find(x=>x.id===tid);
