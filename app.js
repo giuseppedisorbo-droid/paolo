@@ -60,6 +60,9 @@ async function init() {
         document.querySelectorAll('.view-section').forEach(v=>v.classList.remove('active'));
         document.getElementById(b.dataset.target).classList.add('active');
         document.getElementById('headerTitle').textContent = b.dataset.title;
+        if(b.dataset.target === 'view-agenda' && window.taskCalendar) {
+            setTimeout(() => window.taskCalendar.render(), 100);
+        }
     });
 
     document.getElementById('fabMain').addEventListener('click', openNewRequestWizard);
@@ -206,13 +209,55 @@ function renderHome() {
     }
 }
 
+window.taskCalendar = null;
+
 function renderAgenda() {
-    const ag = document.getElementById('agendaList'); ag.innerHTML='';
-    if(currentUser.roles.includes('technician')) ag.innerHTML += `<button class="btn btn-secondary mb-4" onclick="window.openWorkerSessionWizard()" style="width:100%; border-radius:12px; font-weight:bold;">👨‍🔧 Registra Giornata Manovale</button>`;
+    const btn = document.getElementById('btnWorkerSessionCal');
+    if(btn) btn.style.display = currentUser.roles.includes('technician') ? 'inline-flex' : 'none';
+
+    const calEl = document.getElementById('calendarContainer');
+    if(!calEl) return;
+    
+    const events = [];
     const q = currentUser.roles.includes('technician') ? liveTasks.filter(t=>t.assignedTo===currentUser.id) : liveTasks;
-    q.filter(t=>t.scheduledStart).sort((a,b)=>a.scheduledStart.localeCompare(b.scheduledStart)).forEach(t => {
-        ag.innerHTML += `<div class="card" onclick="window.openTaskDetail('${t.id}')" style="border-left:4px solid var(--primary);"><div class="flex-between"><div style="font-weight:bold;">🕒 ${t.scheduledStart.split('T')[1]} - ${new Date(t.scheduledStart).getDate()}/${new Date(t.scheduledStart).getMonth()+1}</div><div style="font-size:0.8rem; background:#eef2ff; padding:3px 8px; border-radius:12px;">👤 ${t.assignedTo}</div></div><div class="card-title mt-2">${t.title}</div></div>`;
+    
+    q.filter(t => t.scheduledStart).forEach(t => {
+        let isUrgent = t.priority === 'urgent' || t.priority === 'high';
+        let color = isUrgent ? '#ef4444' : (t.status === 'completed' ? '#10b981' : '#4338ca');
+        events.push({
+            id: t.id,
+            title: t.title,
+            start: t.scheduledStart,
+            end: t.scheduledEnd || t.scheduledStart,
+            backgroundColor: color,
+            borderColor: color,
+            extendedProps: { taskId: t.id }
+        });
     });
+
+    if(!window.taskCalendar) {
+        if(typeof FullCalendar !== 'undefined') {
+            window.taskCalendar = new FullCalendar.Calendar(calEl, {
+                initialView: 'dayGridMonth',
+                locale: 'it',
+                headerToolbar: {
+                    left: 'prev,next',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                },
+                buttonText: { today: 'Oggi', month: 'Mese', week: 'Sett', day: 'Giorno' },
+                height: '100%',
+                events: events,
+                eventClick: function(info) {
+                    window.openTaskDetail(info.event.extendedProps.taskId);
+                }
+            });
+            window.taskCalendar.render();
+        }
+    } else {
+        window.taskCalendar.removeAllEvents();
+        window.taskCalendar.addEventSource(events);
+    }
 }
 
 function renderFinance() {
@@ -394,23 +439,111 @@ window.execAction = async (act, id) => {
     const m = document.getElementById('taskDetailModal'); if(m) m.classList.remove('open');
 };
 
+window.tempRichDescription = "";
+window.tempAttachments = [];
+
+window.openRichDescriptionModal = () => {
+    document.getElementById('richDescText').value = window.tempRichDescription;
+    document.getElementById('richDescFiles').value = "";
+    document.getElementById('richDescModal').classList.add('open');
+};
+
+window.saveRichDescription = () => {
+    window.tempRichDescription = document.getElementById('richDescText').value;
+    const files = document.getElementById('richDescFiles').files;
+    window.tempAttachments = Array.from(files).map(f => 'attachment_' + Date.now() + '_' + f.name);
+    
+    const summary = document.getElementById('rdSummary');
+    if(window.tempRichDescription || window.tempAttachments.length > 0) {
+        summary.style.display = 'block';
+        summary.textContent = `Dettagli: ${window.tempRichDescription ? 'Sì' : 'No'} | Allegati: ${window.tempAttachments.length}`;
+    } else {
+        summary.style.display = 'none';
+    }
+    document.getElementById('richDescModal').classList.remove('open');
+};
+
 function openNewRequestWizard() {
+    window.tempRichDescription = "";
+    window.tempAttachments = [];
     const b = document.getElementById('wizardBody');
-    document.getElementById('wizardTitle').textContent="Nuova Richiesta";
-    b.innerHTML = `<form id="wizF"><input type="text" id="rt" placeholder="Titolo" required><textarea id="rd" placeholder="Descrizione" rows="3" required></textarea><select id="rl" required><option value="">-- Luogo --</option>${Object.values(appCache.locations).map(l=>`<option value="${l.id}">${l.name}</option>`).join('')}</select><label>Proprietari/Beneficiari</label><div style="max-height:200px;overflow-y:auto;border:1px solid #ccc;padding:10px;margin-bottom:10px;">${Object.values(appCache.organizations).map(o=>`<label class="check-item"><input type="checkbox" value="org_${o.id}">${o.name}</label>`).join('')}${Object.values(appCache.families).map(f=>`<label class="check-item"><input type="checkbox" value="fam_${f.id}">${f.name}</label>`).join('')}</div><button type="submit" class="btn btn-primary">Invia Richiesta</button></form>`;
+    document.getElementById('wizardTitle').textContent="Nuovo Task / Richiesta";
+    b.innerHTML = `<form id="wizF">
+        <input type="text" id="rt" placeholder="Titolo" required>
+        
+        <label>Pianificazione</label>
+        <select id="rSchedMode" style="margin-bottom:8px;">
+            <option value="none">Senza Scadenza (Proponi)</option>
+            <option value="today">Oggi</option>
+            <option value="tomorrow">Domani</option>
+            <option value="datetime">Data e Ora precisa</option>
+            <option value="range">Da... a...</option>
+        </select>
+        <div id="rSchedDtDiv" style="display:none; gap:10px; margin-bottom:12px;">
+            <input type="datetime-local" id="rSchedStart" style="flex:1;">
+            <input type="datetime-local" id="rSchedEnd" style="flex:1; display:none;">
+        </div>
+        
+        <button type="button" class="btn btn-secondary mb-2" onclick="window.openRichDescriptionModal()">✏️ Aggiungi Dettagli/Allegati (Opzionale)</button>
+        <div id="rdSummary" class="text-muted" style="font-size:0.8rem; margin-bottom:12px; display:none; font-weight:bold;"></div>
+        
+        <select id="rl" required><option value="">-- Luogo --</option>${Object.values(appCache.locations).map(l=>`<option value="${l.id}">${l.name}</option>`).join('')}</select>
+        
+        <label>Proprietari/Beneficiari</label>
+        <div style="max-height:200px;overflow-y:auto;border:1px solid #ccc;padding:10px;margin-bottom:10px;">
+            ${Object.values(appCache.organizations).map(o=>`<label class="check-item"><input type="checkbox" value="org_${o.id}">${o.name}</label>`).join('')}
+            ${Object.values(appCache.families).map(f=>`<label class="check-item"><input type="checkbox" value="fam_${f.id}">${f.name}</label>`).join('')}
+        </div>
+        
+        <button type="submit" class="btn btn-primary">Salva ed Invia</button>
+    </form>`;
+
+    b.querySelector('#rSchedMode').addEventListener('change', e => {
+        const v = e.target.value;
+        const dDiv = b.querySelector('#rSchedDtDiv');
+        const sDt = b.querySelector('#rSchedStart');
+        const eDt = b.querySelector('#rSchedEnd');
+        if(v === 'datetime') { dDiv.style.display='flex'; eDt.style.display='none'; sDt.required=true; eDt.required=false; }
+        else if(v === 'range') { dDiv.style.display='flex'; eDt.style.display='block'; sDt.required=true; eDt.required=true; }
+        else { dDiv.style.display='none'; sDt.required=false; eDt.required=false; }
+    });
+
     document.getElementById('wizF').addEventListener('submit', async (e) => {
         e.preventDefault();
         const checks = Array.from(b.querySelectorAll('input[type=checkbox]:checked')).map(x=>x.value);
         if(checks.length===0) return alert("Devi selezionare almeno un centro di costo!");
         const orgIds=checks.filter(x=>x.startsWith('org_')).map(x=>x.slice(4)), famIds=checks.filter(x=>x.startsWith('fam_')).map(x=>x.slice(4));
+        
+        let sStart = null; let sEnd = null;
+        const mode = b.querySelector('#rSchedMode').value;
+        if(mode === 'today') { const d = new Date(); d.setHours(8,0,0,0); sStart = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0,19); }
+        else if(mode === 'tomorrow') { const d = new Date(); d.setDate(d.getDate()+1); d.setHours(8,0,0,0); sStart = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0,19); }
+        else if(mode === 'datetime') { sStart = b.querySelector('#rSchedStart').value; }
+        else if(mode === 'range') { sStart = b.querySelector('#rSchedStart').value; sEnd = b.querySelector('#rSchedEnd').value; }
+
+        const taskData = {
+            title: b.querySelector('#rt').value,
+            description: window.tempRichDescription,
+            attachments: window.tempAttachments,
+            locationId: b.querySelector('#rl').value,
+            organizationIds: orgIds, familyIds: famIds,
+            createdAt: serverTimestamp()
+        };
+        if(sStart) taskData.scheduledStart = sStart;
+        if(sEnd) taskData.scheduledEnd = sEnd;
+
         if(currentUser.roles.includes('technician')) {
-            const tk = await addDoc(collection(db,"tasks"),{title:b.querySelector('#rt').value, description:b.querySelector('#rd').value, locationId:b.querySelector('#rl').value, organizationIds:orgIds, familyIds:famIds, assignedTo:currentUser.id, status:'pending_approval', createdAt:serverTimestamp()});
+            taskData.assignedTo = currentUser.id;
+            taskData.status = sStart ? 'assigned' : 'pending_approval';
+            const tk = await addDoc(collection(db,"tasks"), taskData);
             await logActivity('PROPOSE_TASK','task',tk.id);
-            ['admin','partner_teresa','partner_caterina'].forEach(pid => sendNotification(pid, 'Task Proposto da Paolo', `${b.querySelector('#rt').value}`));
+            ['admin','partner_teresa','partner_caterina'].forEach(pid => sendNotification(pid, 'Task Inserito da Paolo', `${taskData.title}`));
         } else {
-            const req = await addDoc(collection(db,"requests"),{title:b.querySelector('#rt').value, description:b.querySelector('#rd').value, locationId:b.querySelector('#rl').value, organizationIds:orgIds, familyIds:famIds, requestedBy:currentUser.id, status:'new', createdAt:serverTimestamp()});
-            await logActivity('CREATE_REQUEST','request',req.id);
-            sendNotification('admin', 'Nuova Richiesta', `${currentUser.fullName} ha inviato una nuova richiesta.`);
+            taskData.requestedBy = currentUser.id;
+            taskData.status = sStart ? 'assigned' : 'new';
+            const req = await addDoc(collection(db, sStart ? "tasks" : "requests"), taskData);
+            await logActivity('CREATE_REQUEST', sStart ? 'task' : 'request', req.id);
+            sendNotification('admin', 'Nuovo Inserimento', `${currentUser.fullName} ha inserito: ${taskData.title}`);
         }
         document.getElementById('bsBackdrop').classList.remove('open'); document.getElementById('actionWizardModal').classList.remove('open');
     });

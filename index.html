@@ -9,6 +9,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="icon.svg">
     <link rel="manifest" href="manifest.json">
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
     <title>Progetto Paolo V3</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
@@ -57,9 +58,12 @@
     </main>
 
     <!-- View 2: Messa in Opera / Calendario -->
-    <main id="view-agenda" class="view-section">
-        <h2 class="mb-4">Agenda Operativa</h2>
-        <div id="agendaList"></div>
+    <main id="view-agenda" class="view-section" style="padding:10px; height: calc(100vh - 140px); display:flex; flex-direction:column;">
+        <div class="flex-between mb-2">
+            <h2>Calendario</h2>
+            <button id="btnWorkerSessionCal" class="btn btn-secondary" style="width:auto; padding:8px 15px; font-size:0.85rem; display:none;" onclick="window.openWorkerSessionWizard()">👨‍🔧 Giornata Manovale</button>
+        </div>
+        <div id="calendarContainer" style="flex: 1; background:white; border-radius:12px; overflow:hidden; padding:10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); min-height:400px;"></div>
     </main>
 
     <!-- View 3: Allocazioni / Cassa -->
@@ -113,6 +117,23 @@
         </div>
         <div id="wizardBody" style="max-height: 70vh; overflow-y: auto; padding-top:5px;">
             <!-- Content Injected -->
+        </div>
+    </div>
+
+    <!-- 3. Rich Description Modal -->
+    <div id="richDescModal" class="modal-fs">
+        <div class="modal-header">
+            <h2>Dettagli e Materiale</h2>
+            <button class="btn-close-modal" onclick="document.getElementById('richDescModal').classList.remove('open')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <label>Descrizione Estesa</label>
+            <textarea id="richDescText" rows="6" placeholder="Incolla qui appunti o scrivi i dettagli completi..."></textarea>
+            
+            <label class="mt-4">Allega File (Foto, Audio, Video, PDF)</label>
+            <input type="file" id="richDescFiles" multiple accept="image/*,video/*,audio/*,.pdf" style="margin-bottom:15px; width:100%;">
+            
+            <button class="btn btn-primary mt-4" onclick="window.saveRichDescription()">✅ Salva e Torna Indietro</button>
         </div>
     </div>
 
