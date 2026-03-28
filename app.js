@@ -78,6 +78,8 @@ const sendNotification = async(tI, t, m)=>addDoc(collection(db,"notifications"),
 window.markNotifRead = async(id)=>updateDoc(doc(db,"notifications",id),{read:true});
 
 function boot() {
+    const dName = currentUser.fullName || currentUser.name || currentUser.id;
+    document.getElementById('headerUserInfo').textContent = `${dName} | v3.1`;
     const r = currentUser.roles||[];
     let nav = '';
     const isSuper = r.includes('admin') || r.includes('owner') || r.includes('management_control') || r.includes('admin_support') || r.includes('domain_approver');

@@ -32,7 +32,10 @@
 
     <!-- Top Header -->
     <header class="top-header">
-        <h1 id="headerTitle">Home</h1>
+        <div style="display:flex; flex-direction:column;">
+            <h1 id="headerTitle" style="margin:0; line-height:1;">Home</h1>
+            <div id="headerUserInfo" style="font-size:0.7rem; font-weight:600; color:var(--text-muted); margin-top:2px;">v3.1</div>
+        </div>
         <div style="display:flex; gap:15px; align-items:center;">
             <div id="headerWallet" class="wallet-badge hidden">€ 0.00</div>
             <button id="btnNotifs" style="background:none; border:none; font-size:1.5rem; position:relative; cursor:pointer;">🔔<span id="notifBadge" class="hidden" style="position:absolute; top:-5px; right:-5px; background:var(--danger); color:white; border-radius:50%; width:18px; height:18px; font-size:0.7rem; font-weight:bold; display:flex; align-items:center; justify-content:center;">0</span></button>
