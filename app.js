@@ -22,9 +22,11 @@ async function init() {
     }));
     
     const loginSelect = document.getElementById('loginSelect');
+    loginSelect.innerHTML = '<option value="">-- Seleziona Utente --</option>';
     Object.keys(appCache.people).forEach(id => {
         const p = appCache.people[id];
-        if(p.active && p.appAccess) {
+        const hasAccess = p.appAccess === true || (p.appAccess === undefined && ['giuseppe', 'teresa', 'caterina', 'stefano', 'davide', 'paolo'].includes(id));
+        if(p.active && hasAccess) {
             let roleLbl = p.roles[0];
             if(id === 'giuseppe') roleLbl = 'Admin totale';
             else if(id === 'davide' || id === 'teresa') roleLbl = 'Supervisore';
