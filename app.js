@@ -79,7 +79,7 @@ window.markNotifRead = async(id)=>updateDoc(doc(db,"notifications",id),{read:tru
 
 function boot() {
     const dName = currentUser.fullName || currentUser.name || currentUser.id;
-    document.getElementById('headerUserInfo').textContent = `${dName} | v5.7`;
+    document.getElementById('headerUserInfo').textContent = `${dName} | v5.8`;
     const r = currentUser.roles||[];
     let nav = '';
     const isSuper = r.includes('admin') || r.includes('owner') || r.includes('management_control') || r.includes('admin_support') || r.includes('domain_approver');
@@ -371,7 +371,14 @@ function renderFinance() {
         });
 
         h += `<h3 class="mt-4">Storico Cassa</h3><ul style="list-style:none; padding:10px 0;">`;
-        liveCash.filter(c=>c.givenTo===currentUser.id).sort((a,b)=>b.createdAt-a.createdAt).forEach(c=> { const p=c.type==='advance'||c.type==='reimbursement'||c.type==='adjustment'; h+=`<li class="flex-between" style="padding:12px 0; border-bottom:1px solid var(--border);"><span>${c.reason||c.type}</span> <strong style="color:${p?'var(--success)':'var(--danger)'}">${p?'+':'-'}€${c.amount.toFixed(2)}</strong></li>`});
+        liveCash.filter(c=>c.givenTo===currentUser.id).sort((a,b)=>b.createdAt-a.createdAt).forEach(c=> { 
+            const p=c.type==='advance'||c.type==='reimbursement'||c.type==='adjustment'; 
+            let btns = '';
+            if(c.relatedExpenseId) {
+                btns = `<span style="margin-left:8px;"><button style="background:none;border:none;cursor:pointer;font-size:1.1rem;padding:0 5px;" onclick="window.editExpense('${c.relatedExpenseId}')">✏️</button><button style="background:none;border:none;cursor:pointer;font-size:1.1rem;padding:0 5px;" onclick="window.deleteExpense('${c.relatedExpenseId}', true)">🗑️</button></span>`;
+            }
+            h+=`<li class="flex-between" style="padding:12px 0; border-bottom:1px solid var(--border); align-items:center;"><div><span style="font-weight:500;">${c.reason||c.type}</span>${btns}</div> <strong style="color:${p?'var(--success)':'var(--danger)'}">${p?'+':'-'}€${c.amount.toFixed(2)}</strong></li>`
+        });
         fl.innerHTML = h+`</ul><button class="btn btn-primary mt-4 mb-4" onclick="window.openExpenseWizard()">➕ Aggiungi Spesa (Preleva da Cassa)</button>`;
     }
     if(isSuper) {
