@@ -79,7 +79,7 @@ window.markNotifRead = async(id)=>updateDoc(doc(db,"notifications",id),{read:tru
 
 function boot() {
     const dName = currentUser.fullName || currentUser.name || currentUser.id;
-    document.getElementById('headerUserInfo').textContent = `${dName} | v4.2`;
+    document.getElementById('headerUserInfo').textContent = `${dName} | v4.4`;
     const r = currentUser.roles||[];
     let nav = '';
     const isSuper = r.includes('admin') || r.includes('owner') || r.includes('management_control') || r.includes('admin_support') || r.includes('domain_approver');
@@ -605,7 +605,7 @@ window.openNewRequestWizard = (taskIdToEdit = null) => {
             ${initialBtnText} <span>▼</span>
         </button>
         <div id="multiSelectContainer" style="display:none; border:1px solid #ccc; padding:10px; border-radius:8px; margin-bottom:10px; background:#fafafa;">
-            <div style="max-height:200px;overflow-y:auto; margin-bottom:10px;" id="multiSelectCheckboxes">
+            <div style="margin-bottom:10px;" id="multiSelectCheckboxes">
                 ${orgHtml}
                 ${famHtml}
             </div>
