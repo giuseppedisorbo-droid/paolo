@@ -109,10 +109,11 @@ function boot() {
         liveNotifications=snap.docs.map(d=>({id:d.id,...d.data()}))
         .filter(n => !n.scheduledStart || n.scheduledStart.split('T')[0] >= todayIso)
         .sort((a,b)=>b.createdAt-a.createdAt);
-        const x=liveNotifications.filter(n=>!n.read).length; 
+        const unread = liveNotifications.filter(n=>!n.read);
+        const x=unread.length; 
         const b=document.getElementById('notifBadge'); 
         if(x>0){b.textContent=x;b.classList.remove('hidden');}else b.classList.add('hidden'); 
-        document.getElementById('notifList').innerHTML = liveNotifications.map(n=>`<div class="card" onclick="window.markNotifRead('${n.id}')" style="border-left:4px solid ${!n.read?'var(--danger)':'#ccc'}"><strong>${n.title}</strong><p>${n.message}</p></div>`).join('');
+        document.getElementById('notifList').innerHTML = unread.length === 0 ? '<p class="text-center text-muted" style="padding:20px;">Nessuna nuova notifica.</p>' : unread.map(n=>`<div class="card" onclick="window.markNotifRead('${n.id}')" style="border-left:4px solid var(--danger); cursor:pointer;"><strong>${n.title}</strong><p>${n.message}</p></div>`).join('');
     });
     onSnapshot(query(collection(db,"activity_logs")), snap=>liveLogs=snap.docs.map(d=>({id:d.id,...d.data()})));
     onSnapshot(query(collection(db,"work_sessions"),orderBy("createdAt","desc")), snap=>{liveWorkSessions=snap.docs.map(d=>({id:d.id,...d.data()})); renderFinance(); renderReport();});
@@ -222,6 +223,7 @@ function renderHome() {
 
 window.taskCalendar = null;
 window.selectedAgendaDate = null;
+window.getStatusText = (s) => s === 'assigned' ? 'APPROVATO' : (s === 'pending_approval' ? 'DA APPROVARE' : (s === 'in_progress' ? 'IN CORSO' : (s === 'completed' ? 'COMPLETATO' : s.toUpperCase())));
 
 window.filterAgendaList = (dateStr) => {
     window.selectedAgendaDate = dateStr;
@@ -279,7 +281,7 @@ function renderAgendaCards() {
             </div>
             <div class="card-title mt-2" style="font-weight:800; font-size:1.15rem; color:${colors.text};">${t.title} ${ur}</div>
             <div style="font-size:0.85rem; margin-top:5px; opacity:0.95;">📍 ${loc}</div>
-            <div style="font-size:0.85rem; margin-top:5px; font-weight:600; opacity:0.95;">${t.status === 'pending_approval' ? '⏳ Da Approvare' : '✅ Assegnato'}</div>
+            <div style="font-size:0.85rem; margin-top:5px; font-weight:800; opacity:0.95;">${window.getStatusText(t.status)}</div>
         </div>`;
     });
     
@@ -497,15 +499,16 @@ window.openTaskDetail = (taskId) => {
     let supW = ``; if(t.supportWorkers && t.supportWorkers.length > 0) { supW = `<div class="mt-2"><span style="font-size:0.8rem; color:#666;">👨‍🔧 Supporto:</span> ${t.supportWorkers.map(w=>`<span class="entity-tag" style="background:#e0f2fe; color:#1e40af;">${appCache.external_workers[w]?.fullName||w}</span>`).join(' ')}</div>`; }
     
     let acts = '';
-    const isSuper = currentUser.roles.includes('admin') || currentUser.roles.includes('owner') || currentUser.roles.includes('management_control') || currentUser.roles.includes('admin_support') || currentUser.roles.includes('domain_approver');
     
     if(currentUser.roles.includes('technician') && t.assignedTo===currentUser.id) {
         if(t.status==='assigned') acts = `<button class="btn btn-primary" onclick="window.execAction('START_TASK','${t.id}')">Inizia Lavoro</button>`;
         else if(t.status==='in_progress') acts = `<button class="btn btn-secondary mb-2" onclick="window.openExpenseWizard('${t.id}')">➕ Aggiungi Spesa</button><button class="btn btn-success" onclick="window.execAction('COMP_TASK','${t.id}')">✔️ Completato</button>`;
     }
-    if(currentUser.roles.includes('admin') || currentUser.roles.includes('owner')) acts += `<button class="btn btn-danger btn-outline mt-4" onclick="window.execAction('DEL_TASK','${t.id}')">🗑️ Elimina</button>`;
+    
+    if(t.status !== 'completed') acts = `<button class="btn btn-warning mb-2" style="width:100%; color:black;" onclick="window.openNewRequestWizard('${t.id}')">✏️ Modifica Task</button>` + acts;
+    acts += `<button class="btn btn-danger btn-outline mt-4" onclick="window.execAction('DEL_TASK','${t.id}')">🗑️ Elimina</button>`;
 
-    document.getElementById('taskDetailContent').innerHTML = `<span class="status-badge status-${t.status} mb-2">${t.status}</span><h2 class="mb-2">${t.title}</h2><div class="entity-tags">${getEntTags(t.familyIds,t.organizationIds)}</div>${supW}<p class="mt-2">${t.description}</p><h4 class="mt-4">Spese (Allocation Summary)</h4>${expHtml}`;
+    document.getElementById('taskDetailContent').innerHTML = `<span class="status-badge status-${t.status} mb-2">${window.getStatusText(t.status)}</span><h2 class="mb-2">${t.title}</h2><div class="entity-tags">${getEntTags(t.familyIds,t.organizationIds)}</div>${supW}<p class="mt-2">${t.description}</p><h4 class="mt-4">Spese (Allocation Summary)</h4>${expHtml}`;
     const logH = liveLogs.filter(l=>l.entityId===taskId).sort((a,b)=>b.timestamp-a.timestamp).map(l=>`<div style="font-size:0.75rem; border-left:2px solid #ccc; padding-left:5px;"><strong>${l.userName}</strong>: ${l.action}</div>`).join('');
     document.getElementById('taskDetailContent').innerHTML += isSuper ? `<h4 class="mt-4">Audit Logs</h4>${logH}` : '';
     document.getElementById('taskDetailActions').innerHTML = acts;
@@ -518,8 +521,7 @@ window.execAction = async (act, id) => {
     else if(act==='START_TASK') { await updateDoc(doc(db,"tasks",id),{status:'in_progress'}); await logActivity('START_TASK','task',id); }
     else if(act==='COMP_TASK') { const t=liveTasks.find(x=>x.id===id); await updateDoc(doc(db,"tasks",id),{status:'completed'}); await logActivity('COMP_TASK','task',id); if(t.assignedTo) sendNotification('admin', 'Task Completato', `${currentUser.fullName} ha completato: ${t.title}`); }
     else if(act==='DEL_TASK') { 
-        if(!currentUser.roles.includes('admin') && !currentUser.roles.includes('owner')) { alert('Non hai permessi per eliminare'); return; }
-        if(confirm("Sicuro?")) { await logActivity('DEL_TASK','task',id); await deleteDoc(doc(db,"tasks",id)); } 
+        if(confirm("Sicuro di voler eliminare definitivamente questo task e le sue registrazioni associate?")) { await logActivity('DEL_TASK','task',id); await deleteDoc(doc(db,"tasks",id)); } 
     }
     else if(act==='TOGGLE_MATERIAL') { const t=liveTasks.find(x=>x.id===id); await updateDoc(doc(db,"tasks",id),{needsMaterial:!t.needsMaterial}); await logActivity(t.needsMaterial?'FOUND_MATERIAL':'MISSING_MATERIAL','task',id); if(!t.needsMaterial) sendNotification('admin', 'Materiale Mancante', `${t.title} è senza materiali.`); }
     const m = document.getElementById('taskDetailModal'); if(m) m.classList.remove('open');
@@ -549,39 +551,50 @@ window.saveRichDescription = () => {
     document.getElementById('richDescModal').classList.remove('open');
 };
 
-function openNewRequestWizard() {
-    window.tempRichDescription = "";
-    window.tempAttachments = [];
+window.openNewRequestWizard = (taskIdToEdit = null) => {
+    let t = null;
+    if(taskIdToEdit) t = liveTasks.find(x=>x.id===taskIdToEdit);
+
+    window.tempRichDescription = t ? (t.description||"") : "";
+    window.tempAttachments = t ? (t.attachments||[]) : [];
+    
     const b = document.getElementById('wizardBody');
-    document.getElementById('wizardTitle').textContent="Nuovo Task / Richiesta";
-    b.innerHTML = `<form id="wizF">
-        <input type="text" id="rt" placeholder="Titolo" required>
+    document.getElementById('wizardTitle').textContent = t ? "Modifica Task" : "Nuovo Task / Richiesta";
+    
+    // Checkboxes pre-selection logic
+    const orgHtml = Object.values(appCache.organizations).map(o=>`<label class="check-item"><input type="checkbox" value="org_${o.id}" ${t && (t.organizationIds||[]).includes(o.id) ? 'checked' : ''}>${o.name}</label>`).join('');
+    const famHtml = Object.values(appCache.families).map(f=>`<label class="check-item"><input type="checkbox" value="fam_${f.id}" ${t && (t.familyIds||[]).includes(f.id) ? 'checked' : ''}>${f.name}</label>`).join('');
+
+    b.innerHTML = `<form id="wizF" data-edit-id="${taskIdToEdit||''}">
+        <input type="text" id="rt" placeholder="Titolo" value="${t ? t.title : ''}" required>
         
         <label>Pianificazione</label>
         <select id="rSchedMode" style="margin-bottom:8px;">
-            <option value="none">Senza Scadenza (Proponi)</option>
+            <option value="none" ${t && !t.scheduledStart ? 'selected' : ''}>Senza Scadenza (Proponi)</option>
             <option value="today">Oggi</option>
             <option value="tomorrow">Domani</option>
-            <option value="datetime">Data e Ora precisa</option>
-            <option value="range">Da... a...</option>
+            <option value="datetime" ${t && t.scheduledStart && !t.scheduledEnd ? 'selected' : ''}>Data e Ora precisa</option>
+            <option value="range" ${t && t.scheduledEnd ? 'selected' : ''}>Da... a...</option>
         </select>
-        <div id="rSchedDtDiv" style="display:none; gap:10px; margin-bottom:12px;">
-            <input type="datetime-local" id="rSchedStart" style="flex:1;">
-            <input type="datetime-local" id="rSchedEnd" style="flex:1; display:none;">
+        <div id="rSchedDtDiv" style="display:${t && t.scheduledStart ? 'flex' : 'none'}; gap:10px; margin-bottom:12px;">
+            <input type="datetime-local" id="rSchedStart" style="flex:1;" value="${t && t.scheduledStart ? t.scheduledStart.slice(0,16) : ''}">
+            <input type="datetime-local" id="rSchedEnd" style="flex:1; display:${t && t.scheduledEnd ? 'block' : 'none'};" value="${t && t.scheduledEnd ? t.scheduledEnd.slice(0,16) : ''}">
         </div>
         
         <button type="button" class="btn btn-secondary mb-2" onclick="window.openRichDescriptionModal()">✏️ Aggiungi Dettagli/Allegati (Opzionale)</button>
-        <div id="rdSummary" class="text-muted" style="font-size:0.8rem; margin-bottom:12px; display:none; font-weight:bold;"></div>
+        <div id="rdSummary" class="text-muted" style="font-size:0.8rem; margin-bottom:12px; display:${window.tempRichDescription || window.tempAttachments.length ? 'block' : 'none'}; font-weight:bold;">
+            Dettagli: ${window.tempRichDescription ? 'Sì' : 'No'} | Allegati: ${window.tempAttachments.length}
+        </div>
         
-        <input type="hidden" id="rl" value="">
+        <input type="hidden" id="rl" value="${t && t.locationId ? t.locationId : ''}">
         
         <label>Proprietari/Beneficiari</label>
         <div style="max-height:200px;overflow-y:auto;border:1px solid #ccc;padding:10px;margin-bottom:10px;">
-            ${Object.values(appCache.organizations).map(o=>`<label class="check-item"><input type="checkbox" value="org_${o.id}">${o.name}</label>`).join('')}
-            ${Object.values(appCache.families).map(f=>`<label class="check-item"><input type="checkbox" value="fam_${f.id}">${f.name}</label>`).join('')}
+            ${orgHtml}
+            ${famHtml}
         </div>
         
-        <button type="submit" class="btn btn-primary">Salva ed Invia</button>
+        <button type="submit" class="btn ${t ? 'btn-warning' : 'btn-primary'}" style="color:${t ? '#000' : '#fff'}">${t ? 'Salva Modifiche' : 'Salva ed Invia'}</button>
     </form>`;
 
     b.querySelector('#rSchedMode').addEventListener('change', e => {
@@ -611,30 +624,42 @@ function openNewRequestWizard() {
             title: b.querySelector('#rt').value,
             description: window.tempRichDescription,
             attachments: window.tempAttachments,
-            locationId: b.querySelector('#rl').value,
+            locationId: b.querySelector('#rl').value || null,
             organizationIds: orgIds, familyIds: famIds,
-            createdAt: serverTimestamp(),
             assignedTo: 'worker_paolo'
         };
         if(sStart) taskData.scheduledStart = sStart;
         if(sEnd) taskData.scheduledEnd = sEnd;
 
-        if(!currentUser.roles.includes('technician')) { taskData.requestedBy = currentUser.id; }
-        taskData.status = sStart ? 'assigned' : 'pending_approval';
+        // Ensure we remove fields if they are explicitly cleared during edit
+        if(!sStart) taskData.scheduledStart = null;
+        if(!sEnd) taskData.scheduledEnd = null;
 
-        const tk = await addDoc(collection(db,"tasks"), taskData);
-        await logActivity(sStart ? 'CREATE_TASK' : 'PROPOSE_TASK', 'task', tk.id);
-        
-        Object.keys(appCache.people).filter(id => id !== currentUser.id && appCache.people[id].active).forEach(pid => {
-            addDoc(collection(db,"notifications"), {
-                userId: pid, title: 'Nuovo Task Inserito', 
-                message: `${currentUser.fullName} ha inserito il task: ${taskData.title}`,
-                read: false, createdAt: serverTimestamp(), 
-                taskId: tk.id, scheduledStart: sStart || null
+        const editId = b.querySelector('#wizF').getAttribute('data-edit-id');
+
+        if(editId) {
+            if(sStart) taskData.status = 'assigned';
+            await updateDoc(doc(db,"tasks",editId), taskData);
+            await logActivity('EDIT_TASK', 'task', editId);
+        } else {
+            taskData.createdAt = serverTimestamp();
+            if(!currentUser.roles.includes('technician')) { taskData.requestedBy = currentUser.id; }
+            taskData.status = sStart ? 'assigned' : 'pending_approval';
+
+            const tk = await addDoc(collection(db,"tasks"), taskData);
+            await logActivity(sStart ? 'CREATE_TASK' : 'PROPOSE_TASK', 'task', tk.id);
+            
+            Object.keys(appCache.people).filter(id => id !== currentUser.id && appCache.people[id].active).forEach(pid => {
+                addDoc(collection(db,"notifications"), {
+                    userId: pid, title: 'Nuovo Task Inserito', 
+                    message: `${currentUser.fullName} ha inserito il task: ${taskData.title}`,
+                    read: false, createdAt: serverTimestamp(), 
+                    taskId: tk.id, scheduledStart: sStart || null
+                });
             });
-        });
-
+        }
         document.getElementById('bsBackdrop').classList.remove('open'); document.getElementById('actionWizardModal').classList.remove('open');
+        document.getElementById('taskDetailModal').classList.remove('open');
     });
     document.getElementById('actionWizardModal').classList.add('open');
 }
