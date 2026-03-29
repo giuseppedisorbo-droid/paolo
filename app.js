@@ -257,7 +257,8 @@ function renderAgendaCards() {
     if(!listEl) return;
     listEl.innerHTML = '';
     
-    let q = currentUser.roles.includes('technician') ? liveTasks.filter(t=>t.assignedTo===currentUser.id) : liveTasks;
+    const isSuper = currentUser.roles.includes('admin') || currentUser.roles.includes('owner') || currentUser.roles.includes('management_control') || currentUser.roles.includes('admin_support') || currentUser.roles.includes('domain_approver');
+    let q = currentUser.roles.includes('technician') && !isSuper ? liveTasks.filter(t=>t.assignedTo===currentUser.id) : liveTasks;
     q = q.filter(t => t.scheduledStart && t.status !== 'completed');
     
     if(window.selectedAgendaDate) {
@@ -300,7 +301,8 @@ function renderAgenda() {
     if(!calEl) return;
     
     const events = [];
-    const q = currentUser.roles.includes('technician') ? liveTasks.filter(t=>t.assignedTo===currentUser.id) : liveTasks;
+    const isSuper = currentUser.roles.includes('admin') || currentUser.roles.includes('owner') || currentUser.roles.includes('management_control') || currentUser.roles.includes('admin_support') || currentUser.roles.includes('domain_approver');
+    const q = currentUser.roles.includes('technician') && !isSuper ? liveTasks.filter(t=>t.assignedTo===currentUser.id) : liveTasks;
     
     q.filter(t => t.scheduledStart).forEach(t => {
         const d = new Date(t.scheduledStart);
@@ -510,6 +512,7 @@ window.openTaskDetail = (taskId) => {
 
     document.getElementById('taskDetailContent').innerHTML = `<span class="status-badge status-${t.status} mb-2">${window.getStatusText(t.status)}</span><h2 class="mb-2">${t.title}</h2><div class="entity-tags">${getEntTags(t.familyIds,t.organizationIds)}</div>${supW}<p class="mt-2">${t.description}</p><h4 class="mt-4">Spese (Allocation Summary)</h4>${expHtml}`;
     const logH = liveLogs.filter(l=>l.entityId===taskId).sort((a,b)=>b.timestamp-a.timestamp).map(l=>`<div style="font-size:0.75rem; border-left:2px solid #ccc; padding-left:5px;"><strong>${l.userName}</strong>: ${l.action}</div>`).join('');
+    const isSuper = currentUser.roles.includes('admin') || currentUser.roles.includes('owner') || currentUser.roles.includes('management_control') || currentUser.roles.includes('admin_support') || currentUser.roles.includes('domain_approver');
     document.getElementById('taskDetailContent').innerHTML += isSuper ? `<h4 class="mt-4">Audit Logs</h4>${logH}` : '';
     document.getElementById('taskDetailActions').innerHTML = acts;
     document.getElementById('taskDetailModal').classList.add('open');
