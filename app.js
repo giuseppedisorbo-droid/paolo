@@ -79,7 +79,7 @@ window.markNotifRead = async(id)=>updateDoc(doc(db,"notifications",id),{read:tru
 
 function boot() {
     const dName = currentUser.fullName || currentUser.name || currentUser.id;
-    document.getElementById('headerUserInfo').textContent = `${dName} | v4.6`;
+    document.getElementById('headerUserInfo').textContent = `${dName} | v5.0`;
     const r = currentUser.roles||[];
     let nav = '';
     const isSuper = r.includes('admin') || r.includes('owner') || r.includes('management_control') || r.includes('admin_support') || r.includes('domain_approver');
@@ -552,6 +552,7 @@ window.saveRichDescription = () => {
 };
 
 window.openNewRequestWizard = (taskIdToEdit = null) => {
+    if(typeof taskIdToEdit !== 'string') taskIdToEdit = null;
     let t = null;
     if(taskIdToEdit) t = liveTasks.find(x=>x.id===taskIdToEdit);
 
@@ -711,6 +712,7 @@ window.openApproveWizard = (reqId) => {
 };
 
 window.openExpenseWizard = (taskId=null) => {
+    if(typeof taskId !== 'string') taskId = null;
     const b = document.getElementById('wizardBody'); document.getElementById('wizardTitle').textContent="Aggiungi Spesa";
     const opts = liveTasks.filter(t=>t.status!=='completed').map(t=>`<option value="${t.id}" ${t.id===taskId?'selected':''}>${t.title}</option>`).join('');
     const fams = Object.values(appCache.families).map(f=>`<label class="check-item"><input type="checkbox" class="we-alloc" value="fam_${f.id}">${f.name}</label>`).join('');
