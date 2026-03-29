@@ -39,6 +39,7 @@
         <div style="display:flex; gap:15px; align-items:center;">
             <div id="headerWallet" class="wallet-badge hidden">€ 0.00</div>
             <button id="btnNotifs" style="background:none; border:none; font-size:1.5rem; position:relative; cursor:pointer;">🔔<span id="notifBadge" class="hidden" style="position:absolute; top:-5px; right:-5px; background:var(--danger); color:white; border-radius:50%; width:18px; height:18px; font-size:0.7rem; font-weight:bold; display:flex; align-items:center; justify-content:center;">0</span></button>
+            <button id="btnSettings" onclick="document.getElementById('guideModal').classList.add('open')" style="background:none; border:none; font-size:1.5rem; cursor:pointer;" title="Impostazioni e Guida">⚙️</button>
         </div>
     </header>
     
@@ -178,8 +179,72 @@
         </div>
     </div>
 
-    <!-- AI FAB -->
-    <button id="fabAi" class="fab" style="bottom: 150px; right: 20px; z-index: 1000; background: #8b5cf6; box-shadow: 0 4px 10px rgba(139,92,246,0.4);" onclick="window.openAiModal()">✨</button>
+    <!-- AI FAB (Removed per user request) -->
+    <!-- <button id="fabAi" class="fab" style="bottom: 150px; right: 20px; z-index: 1000; background: #8b5cf6; box-shadow: 0 4px 10px rgba(139,92,246,0.4);" onclick="window.openAiModal()">✨</button> -->
+
+    <!-- Guide Modal (Settings / Tutorial) -->
+    <div id="guideModal" class="modal-fs">
+        <div class="modal-header">
+            <h2>⚙️ Impostazioni e Guida</h2>
+            <button class="btn-close-modal" onclick="document.getElementById('guideModal').classList.remove('open')">&times;</button>
+        </div>
+        <div class="modal-body" style="font-size:0.95rem; line-height:1.6;">
+            
+            <strong style="font-size:1.3rem; color:var(--primary); display:block; border-bottom:2px solid var(--border); padding-bottom:5px; margin-bottom:15px;">Capitolo 1: Gestione Operativa e Task</strong>
+            
+            <p style="margin-bottom:10px;"><strong style="font-size:1.05rem;">1.1 Creazione di una Richiesta</strong></p>
+            <p style="margin-bottom:10px;"><em>La creazione dei task è il cuore centrale del sistema, per tracciare ogni operazione.</em></p>
+            <ul style="margin-left:20px; margin-bottom:15px; list-style-type:circle;">
+                <li>Puoi premere il tasto centrale <strong>"+"</strong> per avviare una nuova richiesta.</li>
+                <li>Il sistema assegnerà <em>automaticamente</em> il task all'operatore predefinito.</li>
+                <li>Non è più necessario selezionare il luogo a mano.</li>
+            </ul>
+
+            <p style="margin-bottom:10px;"><strong style="font-size:1.05rem;">1.2 Assegnazione Dettagli</strong></p>
+            <ul style="margin-left:20px; margin-bottom:20px; list-style-type:upper-alpha;">
+                <li><strong>Aggiunta Allegati:</strong> puoi inserire pdf, audio e video usando l'apposito bottone.</li>
+                <li><strong>Organizzazione:</strong> seleziona sempre le famiglie o organizzazioni coinvolte.</li>
+            </ul>
+
+            <strong style="font-size:1.3rem; color:var(--primary); display:block; border-bottom:2px solid var(--border); padding-bottom:5px; margin-bottom:15px;">Capitolo 2: Agenda e Calendario</strong>
+            
+            <p style="margin-bottom:10px;"><strong style="font-size:1.05rem;">2.1 Vista Calendario</strong></p>
+            <p style="margin-bottom:10px;"><em>Il monitoraggio delle scadenze è ora visibile istantaneamente su più livelli.</em></p>
+            <ul style="margin-left:20px; margin-bottom:15px; list-style-type:square;">
+                <li>Il calendario parte da <strong>Lunedì</strong> e si estende fino a Domenica sulle colonne a destra.</li>
+                <li>Puoi scorrere rapidamente tra le visualizzazioni Mese, Settimana e Giorno.</li>
+            </ul>
+
+            <p style="margin-bottom:10px;"><strong style="font-size:1.05rem;">2.2 Schede a Colori</strong></p>
+            <ul style="margin-left:20px; margin-bottom:15px; list-style-type:lower-alpha;">
+                <li>Cliccando un singolo giorno, la lista in basso si <em>filtra automaticamente</em>.</li>
+                <li>Ogni giorno della settimana possiede un suo <strong>colore specifico ad alto contrasto</strong> (Es. Rosso per Lunedì, Verde per Giovedì).</li>
+            </ul>
+
+            <p style="margin-bottom:10px;"><strong style="font-size:1.05rem;">2.3 Modifica in itinere</strong></p>
+            <ul style="margin-left:20px; margin-bottom:20px;">
+                <li>Cliccando su una scheda puoi aprire i dettagli, consuntivare orari o dichiararla completata.</li>
+            </ul>
+
+            <strong style="font-size:1.3rem; color:var(--primary); display:block; border-bottom:2px solid var(--border); padding-bottom:5px; margin-bottom:15px;">Capitolo 3: Cassa e Notifiche</strong>
+            
+            <p style="margin-bottom:10px;"><strong style="font-size:1.05rem;">3.1 Flusso Cassa</strong></p>
+            <p style="margin-bottom:10px;"><em>Tutta la finanza di cantiere è tracciata tramite la sezione "Cassa".</em></p>
+            <ul style="margin-left:20px; margin-bottom:15px; list-style-type:circle;">
+                <li>Visualizzazione del portafoglio cassa in alto a destra sulla Home.</li>
+                <li>Registrazione <strong>Scontrini</strong> con caricamento immediato della foto.</li>
+            </ul>
+
+            <p style="margin-bottom:10px;"><strong style="font-size:1.05rem;">3.2 Notifiche Intelligenti</strong></p>
+            <ul style="margin-left:20px; margin-bottom:15px; list-style-type:lower-alpha;">
+                <li><strong>Avvisi automatici:</strong> tutto il team viene notificato dei nuovi inserimenti.</li>
+                <li><strong>Auto-Pulizia:</strong> le notifiche si eliminano da sole il giorno successivo all'evento pianificato.</li>
+                <li>Puoi forzare la chiusura di un avviso semplicemente <em>cliccandoci sopra</em> per segnarlo letto.</li>
+            </ul>
+
+            <p style="margin-top:20px; text-align:center; color:var(--text-muted); font-size:0.8rem;"><em>Progetto Paolo V3.6 - Tutti i diritti riservati.</em></p>
+        </div>
+    </div>
 
     <!-- Hidden Camera Input for PWA -->
     <input type="file" id="nativeCameraInput" accept="image/*" capture="environment" style="display:none;">

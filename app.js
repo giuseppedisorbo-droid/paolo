@@ -321,6 +321,7 @@ function renderAgenda() {
             window.taskCalendar = new FullCalendar.Calendar(calEl, {
                 initialView: 'dayGridMonth',
                 locale: 'it',
+                firstDay: 1, // Start on Monday
                 headerToolbar: {
                     left: 'prev,next',
                     center: 'title',

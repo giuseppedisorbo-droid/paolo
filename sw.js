@@ -1,4 +1,4 @@
-const CACHE_NAME = 'peppe-system-v3.5';
+const CACHE_NAME = 'peppe-system-v3.7';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
