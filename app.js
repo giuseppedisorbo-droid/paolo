@@ -564,6 +564,18 @@ window.openNewRequestWizard = (taskIdToEdit = null) => {
     // Checkboxes pre-selection logic
     const orgHtml = Object.values(appCache.organizations).map(o=>`<label class="check-item"><input type="checkbox" value="org_${o.id}" ${t && (t.organizationIds||[]).includes(o.id) ? 'checked' : ''}>${o.name}</label>`).join('');
     const famHtml = Object.values(appCache.families).map(f=>`<label class="check-item"><input type="checkbox" value="fam_${f.id}" ${t && (t.familyIds||[]).includes(f.id) ? 'checked' : ''}>${f.name}</label>`).join('');
+    
+    let initialBtnText = "Seleziona Beneficiari...";
+    if(t) {
+        let names = [];
+        (t.organizationIds||[]).forEach(id => names.push(appCache.organizations[id]?.name));
+        (t.familyIds||[]).forEach(id => names.push(appCache.families[id]?.name));
+        let validNames = names.filter(Boolean);
+        if(validNames.length > 0) {
+            let j = validNames.join(', ');
+            initialBtnText = j.length > 35 ? j.substring(0,32) + "..." : j;
+        }
+    }
 
     b.innerHTML = `<form id="wizF" data-edit-id="${taskIdToEdit||''}">
         <input type="text" id="rt" placeholder="Titolo" value="${t ? t.title : ''}" required>
@@ -589,9 +601,15 @@ window.openNewRequestWizard = (taskIdToEdit = null) => {
         <input type="hidden" id="rl" value="${t && t.locationId ? t.locationId : ''}">
         
         <label>Proprietari/Beneficiari</label>
-        <div style="max-height:200px;overflow-y:auto;border:1px solid #ccc;padding:10px;margin-bottom:10px;">
-            ${orgHtml}
-            ${famHtml}
+        <button type="button" id="btnMultiSelect" class="btn btn-outline" style="width:100%; text-align:left; margin-bottom:10px; background:#fff; border:1px solid #ccc; color:#333; justify-content:space-between;" onclick="document.getElementById('multiSelectContainer').style.display='block'; this.style.display='none';">
+            ${initialBtnText} <span>▼</span>
+        </button>
+        <div id="multiSelectContainer" style="display:none; border:1px solid #ccc; padding:10px; border-radius:8px; margin-bottom:10px; background:#fafafa;">
+            <div style="max-height:200px;overflow-y:auto; margin-bottom:10px;" id="multiSelectCheckboxes">
+                ${orgHtml}
+                ${famHtml}
+            </div>
+            <button type="button" class="btn btn-primary" style="width:100%; padding:8px;" onclick="window.confirmMultiSelect()">OK Conferma Scelta</button>
         </div>
         
         <button type="submit" class="btn ${t ? 'btn-warning' : 'btn-primary'}" style="color:${t ? '#000' : '#fff'}">${t ? 'Salva Modifiche' : 'Salva ed Invia'}</button>
@@ -666,6 +684,21 @@ window.openNewRequestWizard = (taskIdToEdit = null) => {
     });
     document.getElementById('actionWizardModal').classList.add('open');
 }
+
+window.confirmMultiSelect = () => {
+    const checks = Array.from(document.querySelectorAll('#multiSelectCheckboxes input[type=checkbox]:checked'));
+    const btn = document.getElementById('btnMultiSelect');
+    const container = document.getElementById('multiSelectContainer');
+    if(checks.length === 0) {
+        btn.innerHTML = "Seleziona Beneficiari... <span>▼</span>";
+    } else {
+        const names = checks.map(c => c.parentElement.textContent.trim()).join(', ');
+        const fmt = names.length > 35 ? names.substring(0,32) + "..." : names;
+        btn.innerHTML = fmt + " <span>▼</span>";
+    }
+    container.style.display = 'none';
+    btn.style.display = 'flex';
+};
 
 window.openApproveWizard = (reqId) => {
     const r = liveRequests.find(x=>x.id===reqId);
