@@ -1,223 +1,8 @@
-<!DOCTYPE html>
-<html lang="it">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="theme-color" content="#2563eb">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="apple-touch-icon" href="icon.svg">
-    <link rel="manifest" href="manifest.json">
-    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
-    <script>
-        window.onerror = function(msg, url, line, col, error) {
-            alert("Error: " + msg + "\nLine: " + line);
-            return false;
-        };
-        window.addEventListener('unhandledrejection', function(event) {
-            alert("Promise Error: " + (event.reason ? event.reason.message : "Scrittura DB fallita. Controlla connessione."));
-        });
-    </script>
-    <title>Progetto Paolo V3</title>
-    <link rel="stylesheet" href="style.css?v=5.4">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-</head>
-<body>
-    
-    <!-- Login Overlay (Cannot be closed until logged in) -->
-    <div id="loginOverlay" class="modal-fs open" style="z-index: 9999;">
-        <div class="modal-body" style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:100%; background:white;">
-            <div style="text-align: center; margin-bottom: 30px;">
-                <h1 style="color:var(--primary); font-size:2rem; margin-bottom:10px; line-height:1.2;">Gestione Attività<br>Manutenzione</h1>
-                <p style="color:var(--text-muted); line-height:1.4;"><strong>v5.5</strong></p>
-            </div>
-            <select id="loginSelect" style="max-width: 300px;">
-                <option value="">Caricamento utenti...</option>
-            </select>
-            <button id="btnLogin" class="btn btn-primary" style="max-width:300px; margin-top:15px;">Accedi</button>
-        </div>
-    </div>
+const fs = require('fs');
+const htmlFile = 'index.html';
+const content = fs.readFileSync(htmlFile, 'utf8');
 
-    <!-- Top Header -->
-    <header class="top-header">
-        <div style="display:flex; flex-direction:column;">
-            <h1 id="headerTitle" style="margin:0; line-height:1;">Home</h1>
-            <div id="headerUserInfo" style="font-size:0.7rem; font-weight:600; color:var(--text-muted); margin-top:2px;">v5.5</div>
-        </div>
-        <div style="display:flex; gap:15px; align-items:center;">
-            <div id="headerWallet" class="wallet-badge hidden">€ 0.00</div>
-            <button id="btnNotifs" style="background:none; border:none; font-size:1.5rem; position:relative; cursor:pointer;">🔔<span id="notifBadge" class="hidden" style="position:absolute; top:-5px; right:-5px; background:var(--danger); color:white; border-radius:50%; width:18px; height:18px; font-size:0.7rem; font-weight:bold; display:flex; align-items:center; justify-content:center;">0</span></button>
-            <button id="btnSettings" onclick="document.getElementById('guideModal').classList.add('open')" style="background:none; border:none; font-size:1.5rem; cursor:pointer;" title="Impostazioni e Guida">⚙️</button>
-        </div>
-    </header>
-    
-    <!-- Notification Panel -->
-    <div id="notifPanel" class="modal-fs">
-        <div class="modal-header"><h2 id="notifTitle">Notifiche</h2><button class="btn-close-modal" id="btnCloseNotif">&times;</button></div>
-        <div class="modal-body" id="notifList"></div>
-    </div>
-
-    <!-- VIEWS -->
-    
-    <!-- View 1: Tasks / Home (Worker & Admin) -->
-    <main id="view-home" class="view-section active">
-        <div id="homeAdminStats" class="hidden" style="margin-bottom:15px;">
-            <!-- For Admin: brief summary of requests / tasks -->
-        </div>
-        <div id="feedList">
-            <div class="text-center" style="color:var(--text-muted); margin-top:40px;">Caricamento...</div>
-        </div>
-    </main>
-
-    <!-- View 2: Messa in Opera / Calendario -->
-    <main id="view-agenda" class="view-section flex-view" style="padding:10px; height: calc(100vh - 140px); overflow-y:auto;">
-        <div class="flex-between mb-2" style="flex-shrink:0;">
-            <h2>Calendario</h2>
-            <button id="btnWorkerSessionCal" class="btn btn-secondary" style="width:auto; padding:8px 15px; font-size:0.85rem; display:none;" onclick="window.openWorkerSessionWizard()">👨‍🔧 Giornata Manovale</button>
-        </div>
-        <div id="calendarContainer" style="flex-shrink:0; background:white; border-radius:12px; overflow:hidden; padding:10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); min-height:450px; margin-bottom:20px;"></div>
-        
-        <div class="flex-between mb-2" style="flex-shrink:0;">
-            <h3 id="agendaListTitle">Prossimi Interventi</h3>
-            <button id="btnShowAllCards" class="btn btn-outline" style="font-size:0.75rem; padding:4px 8px; display:none;" onclick="window.filterAgendaList(null)">Mostra Tutti</button>
-        </div>
-        <div id="agendaList" style="flex:1; padding-bottom:30px;"></div>
-    </main>
-
-    <!-- View 3: Allocazioni / Cassa -->
-    <main id="view-finance" class="view-section">
-        <h2 class="mb-4">Ripartizione e Cassa</h2>
-        <div id="financeList"></div>
-    </main>
-
-    <!-- View 4: Rubrica / Directory -->
-    <main id="view-directory" class="view-section">
-        <h2 class="mb-4">Direttorio Proprietà</h2>
-        <div id="directoryList"></div>
-    </main>
-
-    <!-- View 5: Report (Admin only) -->
-    <main id="view-report" class="view-section">
-        <h2 class="mb-4">Report Operativo</h2>
-        <div id="reportContent"></div>
-    </main>
-
-    <!-- BOTTOM NAVIGATION -->
-    <nav class="bottom-nav" id="bottomNav">
-        <!-- Dynamic injection based on role -->
-    </nav>
-
-    <!-- FLOATING ACTION BUTTON (Context aware) -->
-    <button id="fabMain" class="fab">+</button>
-
-    <!-- FULLSCREEN MODALS -->
-
-    <!-- 1. Task Detail Modal -->
-    <div id="taskDetailModal" class="modal-fs">
-        <div class="modal-header">
-            <h2 id="taskModalTitle">Dettaglio</h2>
-            <button class="btn-close-modal" id="btnCloseTaskModal">&times;</button>
-        </div>
-        <div class="modal-body">
-            <div id="taskDetailContent"></div>
-            <div id="taskDetailActions" class="mt-4">
-                <!-- Worker buttons or Admin buttons injected here -->
-            </div>
-        </div>
-    </div>
-
-    <!-- 2. Dynamic Bottom Sheet (Add Expense / Allocations / Close) -->
-    <div id="bsBackdrop" class="bs-backdrop"></div>
-    <div id="actionWizardModal" class="bottom-sheet">
-        <div class="modal-header" style="border-bottom:none; padding:0 0 15px 0;">
-            <h2 id="wizardTitle">Azione Rapida</h2>
-            <button class="btn-close-modal" id="btnCloseWizard">&times;</button>
-        </div>
-        <div id="wizardBody" style="max-height: 70vh; overflow-y: auto; padding-top:5px;">
-            <!-- Content Injected -->
-        </div>
-    </div>
-
-    <!-- 3. Rich Description Modal -->
-    <div id="richDescModal" class="modal-fs">
-        <div class="modal-header">
-            <h2>Dettagli e Materiale</h2>
-            <button class="btn-close-modal" onclick="document.getElementById('richDescModal').classList.remove('open')">&times;</button>
-        </div>
-        <div class="modal-body">
-            <label>Descrizione Estesa</label>
-            <textarea id="richDescText" rows="6" placeholder="Incolla qui appunti o scrivi i dettagli completi..."></textarea>
-            
-            <label class="mt-4">Allega File (Foto, Audio, Video, PDF)</label>
-            <input type="file" id="richDescFiles" multiple accept="image/*,video/*,audio/*,.pdf" style="margin-bottom:15px; width:100%;">
-            
-            <button class="btn btn-primary mt-4" onclick="window.saveRichDescription()">✅ Salva e Torna Indietro</button>
-        </div>
-    </div>
-
-    <!-- AI Assist Modal -->
-    <div id="aiAssistModal" class="modal-fs">
-        <div class="modal-header" style="background:#8b5cf6; color:white;">
-            <h2 id="aiModalTitle" style="color:white; margin:0;">✨ Aiuto AI</h2>
-            <button class="btn-close-modal" id="btnCloseAiModal" style="color:white;">&times;</button>
-        </div>
-        <div class="modal-body" style="padding-top:10px;">
-            <div id="aiContextBanner" style="font-size:0.8rem; background:#ede9fe; color:#5b21b6; padding:8px 12px; border-radius:12px; margin-bottom:15px; font-weight:600;">Contesto: Home</div>
-            
-            <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:15px;">
-                <button class="btn btn-outline" style="padding:5px 10px; font-size:0.8rem; border-color:#8b5cf6; color:#8b5cf6; width:auto;" onclick="document.getElementById('aiInput').value='Come faccio a ...'">Come faccio a...</button>
-                <button class="btn btn-outline" style="padding:5px 10px; font-size:0.8rem; border-color:#8b5cf6; color:#8b5cf6; width:auto;" onclick="document.getElementById('aiInput').value='Ho un problema con ...'">Segnala problema</button>
-                <button class="btn btn-outline" style="padding:5px 10px; font-size:0.8rem; border-color:#8b5cf6; color:#8b5cf6; width:auto;" onclick="document.getElementById('aiInput').value='Crea una richiesta per ...'">Trasforma in richiesta</button>
-            </div>
-            
-            <textarea id="aiInput" style="width:100%; height:120px; border:2px solid #ddd; border-radius:12px; padding:12px; font-family:inherit; font-size:1rem; resize:none; margin-bottom:10px;" placeholder="Scrivi qui il tuo dubbio, problema o richiesta..."></textarea>
-            
-            <button id="btnSubmitAi" class="btn btn-primary" onclick="window.submitAiPrompt()" style="background:#8b5cf6; display:flex; align-items:center; justify-content:center; gap:8px;">✨ Chiedi all'AI</button>
-            <div id="aiLoadingIndicator" style="display:none; text-align:center; padding:10px; color:#8b5cf6; font-weight:bold;">L'AI sta pensando...</div>
-            
-            <div id="aiResponseContainer" class="mt-4" style="display:none;">
-                <div class="card" style="border-left:4px solid #8b5cf6; background:#f5f3ff;">
-                    <div id="aiResponseText" style="font-size:0.95rem; line-height:1.5; color:#333;"></div>
-                    <div id="aiSuggestedActions" class="mt-3"></div>
-                </div>
-            </div>
-            
-            <h4 class="mt-4" style="color:var(--text-muted); font-size:0.9rem; margin-bottom:10px;">Ultime Tue Interazioni</h4>
-            <div id="aiHistory" style="margin-top:5px; margin-bottom:40px;"></div>
-        </div>
-    </div>
-
-    <!-- AI FAB (Removed per user request) -->
-    <!-- <button id="fabAi" class="fab" style="bottom: 150px; right: 20px; z-index: 1000; background: #8b5cf6; box-shadow: 0 4px 10px rgba(139,92,246,0.4);" onclick="window.openAiModal()">✨</button> -->
-
-    <!-- Guide Modal (Settings / Tutorial) -->
-    <div id="guideModal" class="modal-fs">
-        <div class="modal-header">
-            <h2>⚙️ Impostazioni e Guida</h2>
-            <button class="btn-close-modal" onclick="document.getElementById('guideModal').classList.remove('open')">&times;</button>
-        </div>
-        <div class="modal-body" style="font-size:0.95rem; line-height:1.6;">
-
-            <div id="guideMenu">
-                <input type="text" id="guideSearchInput" placeholder="🔍 Cerca argomenti, termini o procedure..." style="width:100%; padding:14px; margin-bottom:20px; border-radius:12px; border:2px solid var(--primary); font-size:1rem; outline:none;" onkeyup="window.searchGuide()">
-                
-                <div id="guideSearchResults" style="display:none; margin-bottom:20px; padding:15px; background:var(--secondary); border-radius:12px; max-height:400px; overflow-y:auto; border:1px solid var(--border);"></div>
-
-                <div id="guideButtons">
-                    <button class="btn btn-outline mb-3" style="justify-content:flex-start; font-weight:700; font-size:1rem; padding:15px;" onclick="window.openChapter(1)">Capitolo 1 - Creazione e Gestione dei Task</button>
-                    <button class="btn btn-outline mb-3" style="justify-content:flex-start; font-weight:700; font-size:1rem; padding:15px;" onclick="window.openChapter(2)">Capitolo 2 - Agenda, Calendario e Interventi</button>
-                    <button class="btn btn-outline mb-3" style="justify-content:flex-start; font-weight:700; font-size:1rem; padding:15px;" onclick="window.openChapter(3)">Capitolo 3 - Ripartizione, Cassa e Finanza</button>
-                    <button class="btn btn-outline mb-3" style="justify-content:flex-start; font-weight:700; font-size:1rem; padding:15px;" onclick="window.openChapter(4)">Capitolo 4 - Direttorio, Organizzazioni e Famiglie</button>
-                    <button class="btn btn-outline mb-3" style="justify-content:flex-start; font-weight:700; font-size:1rem; padding:15px;" onclick="window.openChapter(5)">Capitolo 5 - Supporto Intelligente e Notifiche</button>
-                    <button class="btn btn-primary mb-3" style="justify-content:flex-start; font-weight:700; font-size:1rem; padding:15px;" onclick="window.openChapter(6)">Capitolo 6 - Glossario Tecnico (40 Termini)</button>
-                </div>
-            </div>
-
-            <div id="guideContent" style="display:none;">
-                <button class="btn btn-secondary mb-4" onclick="window.closeChapter()" style="background:#e2e8f0; color:#0f172a; border:none; width:auto; padding:10px 15px; font-weight:bold;">⬅️ Torna al Menu Principale</button>
-                
-                
+const replacement = `
                 <div id="chap1" class="guide-chap" style="display:none;">
                     <h2 style="color:var(--primary); margin-bottom:20px; border-bottom:3px solid var(--border); padding-bottom:10px;">Capitolo 1 - Creazione e Gestione dei Task</h2>
                     <ul style="margin-left:20px; line-height:1.8; list-style-type:circle;">
@@ -318,82 +103,38 @@
                         <li style="margin-bottom:8px; border-bottom:1px dashed var(--border);"><strong>40. Wallet:</strong> Sull'interfaccia Home (in Cima Destra o Sinistra) il badge verde o rosso monetario dei TUOI esatti importi rimanenti d'ufficio prima di dover fare richieste SOS soldi (Ricariche).</li>
                     </ul>
                 </div>
-            </div>
+`;
 
-            <script>
-                window.openChapter = function(n) {
-                    document.getElementById('guideButtons').style.display = 'none';
-                    document.getElementById('guideSearchInput').style.display = 'none';
-                    document.getElementById('guideSearchResults').style.display = 'none';
-                    document.getElementById('guideContent').style.display = 'block';
-                    for(let i=1; i<=6; i++) {
-                        let chp = document.getElementById('chap' + i);
-                        if(chp) chp.style.display = (i === n) ? 'block' : 'none';
-                    }
-                };
+// Replace from <div id="chap1" ... to the </div> of chap6
+const startMarker = '<div id="chap1" class="guide-chap" style="display:none;">';
+const endMarker = '</div>';
+const startIndex = content.indexOf(startMarker);
+if(startIndex === -1) {
+    console.error('Start marker non trovato');
+    process.exit(1);
+}
 
-                window.closeChapter = function() {
-                    document.getElementById('guideContent').style.display = 'none';
-                    document.getElementById('guideButtons').style.display = 'block';
-                    document.getElementById('guideSearchInput').style.display = 'block';
-                    document.getElementById('guideSearchInput').value = '';
-                    window.searchGuide();
-                };
+// Find the 6th closing div after chap6
+let currentIndex = content.indexOf('<div id="chap6"', startIndex);
+let endIndex = content.indexOf('</div>', currentIndex);
+// Actually we can just find 'window.openChapter = function(n) {' and go back...
+const nextScriptIndex = content.indexOf('<script>', currentIndex);
+endIndex = content.lastIndexOf('</div>', nextScriptIndex); // The </div> of chap6
 
-                window.searchGuide = function() {
-                    const q = document.getElementById('guideSearchInput').value.toLowerCase();
-                    const resultsBox = document.getElementById('guideSearchResults');
-                    const btnMenu = document.getElementById('guideButtons');
-                    
-                    if(q.trim() === '') {
-                        resultsBox.style.display = 'none';
-                        btnMenu.style.display = 'block';
-                        return;
-                    }
+const newContent = content.substring(0, startIndex) + replacement + content.substring(endIndex + 6);
 
-                    resultsBox.style.display = 'block';
-                    btnMenu.style.display = 'none';
+// Bump version for cache busting
+const bumpedHtml = newContent.replace(/v5\.4/g, 'v5.5');
 
-                    // Collect all text
-                    let allResults = '';
-                    for(let i=1; i<=6; i++) {
-                        const chap = document.getElementById('chap' + i);
-                        if(!chap) continue;
-                        const h2 = chap.querySelector('h2');
-                        const chapTitle = h2 ? h2.innerText : 'Sezione ' + i;
-                        
-                        let paragraphs = chap.querySelectorAll('p, li');
-                        paragraphs.forEach(p => {
-                            const text = p.innerText;
-                            if(text.toLowerCase().includes(q)) {
-                                const highlighted = text.replace(new RegExp(q.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&"), 'gi'), match => '<strong style="background:var(--warning); color:white; padding:0 3px; border-radius:3px;">' + match + '</strong>');
-                                allResults += '<div style="margin-bottom:15px; padding:15px; border-left:4px solid var(--primary); background:white; font-size:0.95rem; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.1); line-height:1.6;"><strong>' + chapTitle + '</strong><br><br>' + highlighted + '</div>';
-                            }
-                        });
-                    }
+fs.writeFileSync(htmlFile, bumpedHtml, 'utf8');
 
-                    if(allResults === '') {
-                        resultsBox.innerHTML = '<div class="text-muted" style="text-align:center; padding:20px; font-weight:bold;">Nessun risultato compatibile trovato in questa app. Riprova con altri termini.</div>';
-                    } else {
-                        resultsBox.innerHTML = allResults;
-                    }
-                };
-            </script>
+// also bump app.js and sw.js
+let appjs = fs.readFileSync('app.js', 'utf8');
+appjs = appjs.replace(/v5\.4/g, 'v5.5');
+fs.writeFileSync('app.js', appjs, 'utf8');
 
-        </div>
-    </div>
+let swjs = fs.readFileSync('sw.js', 'utf8');
+swjs = swjs.replace(/v5\.4/g, 'v5.5');
+fs.writeFileSync('sw.js', swjs, 'utf8');
 
-    <!-- Hidden Camera Input for PWA -->
-    <input type="file" id="nativeCameraInput" accept="image/*" capture="environment" style="display:none;">
-
-    <!-- PWA Service Worker -->
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('sw.js').catch(err => console.log('SW failed', err));
-        });
-      }
-    </script>
-    <script type="module" src="app.js?v=5.4"></script>
-</body>
-</html>
+console.log('Fatto!');
