@@ -104,7 +104,16 @@ function boot() {
     onSnapshot(query(collection(db,"requests"),orderBy("createdAt","desc")), snap=>{liveRequests=snap.docs.map(d=>({id:d.id,...d.data()})); renderHome();});
     onSnapshot(query(collection(db,"expenses"),orderBy("createdAt","desc")), snap=>{liveExpenses=snap.docs.map(d=>({id:d.id,...d.data()})); renderFinance(); renderReport();});
     onSnapshot(query(collection(db,"cash_movements"),orderBy("createdAt","desc")), snap=>{liveCash=snap.docs.map(d=>({id:d.id,...d.data()})); if(r.includes('technician')){const bal=liveCash.filter(c=>c.givenTo===currentUser.id).sort((a,b)=>b.createdAt-a.createdAt)[0]?.balanceAfter||0; document.getElementById('headerWallet').textContent=`€${bal.toFixed(2)}`; currentUser.wallet=bal;} renderFinance();});
-    onSnapshot(query(collection(db,"notifications"),where("userId","==",currentUser.id)), snap=>{liveNotifications=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.createdAt-a.createdAt); const x=liveNotifications.filter(n=>!n.read).length; const b=document.getElementById('notifBadge'); if(x>0){b.textContent=x;b.classList.remove('hidden');}else b.classList.add('hidden'); document.getElementById('notifList').innerHTML = liveNotifications.map(n=>`<div class="card" onclick="window.markNotifRead('${n.id}')" style="border-left:4px solid ${!n.read?'var(--danger)':'#ccc'}"><strong>${n.title}</strong><p>${n.message}</p></div>`).join('');});
+    onSnapshot(query(collection(db,"notifications"),where("userId","==",currentUser.id)), snap=>{
+        const todayIso = new Date().toISOString().split('T')[0];
+        liveNotifications=snap.docs.map(d=>({id:d.id,...d.data()}))
+        .filter(n => !n.scheduledStart || n.scheduledStart.split('T')[0] >= todayIso)
+        .sort((a,b)=>b.createdAt-a.createdAt);
+        const x=liveNotifications.filter(n=>!n.read).length; 
+        const b=document.getElementById('notifBadge'); 
+        if(x>0){b.textContent=x;b.classList.remove('hidden');}else b.classList.add('hidden'); 
+        document.getElementById('notifList').innerHTML = liveNotifications.map(n=>`<div class="card" onclick="window.markNotifRead('${n.id}')" style="border-left:4px solid ${!n.read?'var(--danger)':'#ccc'}"><strong>${n.title}</strong><p>${n.message}</p></div>`).join('');
+    });
     onSnapshot(query(collection(db,"activity_logs")), snap=>liveLogs=snap.docs.map(d=>({id:d.id,...d.data()})));
     onSnapshot(query(collection(db,"work_sessions"),orderBy("createdAt","desc")), snap=>{liveWorkSessions=snap.docs.map(d=>({id:d.id,...d.data()})); renderFinance(); renderReport();});
     renderDirectory();
@@ -603,24 +612,27 @@ function openNewRequestWizard() {
             attachments: window.tempAttachments,
             locationId: b.querySelector('#rl').value,
             organizationIds: orgIds, familyIds: famIds,
-            createdAt: serverTimestamp()
+            createdAt: serverTimestamp(),
+            assignedTo: 'worker_paolo'
         };
         if(sStart) taskData.scheduledStart = sStart;
         if(sEnd) taskData.scheduledEnd = sEnd;
 
-        if(currentUser.roles.includes('technician')) {
-            taskData.assignedTo = currentUser.id;
-            taskData.status = sStart ? 'assigned' : 'pending_approval';
-            const tk = await addDoc(collection(db,"tasks"), taskData);
-            await logActivity('PROPOSE_TASK','task',tk.id);
-            ['admin','partner_teresa','partner_caterina'].forEach(pid => sendNotification(pid, 'Task Inserito da Paolo', `${taskData.title}`));
-        } else {
-            taskData.requestedBy = currentUser.id;
-            taskData.status = sStart ? 'assigned' : 'new';
-            const req = await addDoc(collection(db, sStart ? "tasks" : "requests"), taskData);
-            await logActivity('CREATE_REQUEST', sStart ? 'task' : 'request', req.id);
-            sendNotification('admin', 'Nuovo Inserimento', `${currentUser.fullName} ha inserito: ${taskData.title}`);
-        }
+        if(!currentUser.roles.includes('technician')) { taskData.requestedBy = currentUser.id; }
+        taskData.status = sStart ? 'assigned' : 'pending_approval';
+
+        const tk = await addDoc(collection(db,"tasks"), taskData);
+        await logActivity(sStart ? 'CREATE_TASK' : 'PROPOSE_TASK', 'task', tk.id);
+        
+        Object.keys(appCache.people).filter(id => id !== currentUser.id && appCache.people[id].active).forEach(pid => {
+            addDoc(collection(db,"notifications"), {
+                userId: pid, title: 'Nuovo Task Inserito', 
+                message: `${currentUser.fullName} ha inserito il task: ${taskData.title}`,
+                read: false, createdAt: serverTimestamp(), 
+                taskId: tk.id, scheduledStart: sStart || null
+            });
+        });
+
         document.getElementById('bsBackdrop').classList.remove('open'); document.getElementById('actionWizardModal').classList.remove('open');
     });
     document.getElementById('actionWizardModal').classList.add('open');
@@ -630,7 +642,7 @@ window.openApproveWizard = (reqId) => {
     const r = liveRequests.find(x=>x.id===reqId);
     const b = document.getElementById('wizardBody'); document.getElementById('wizardTitle').textContent="Assegna";
     const d=new Date(); d.setDate(d.getDate()+1); d.setHours(8,0,0,0); const iso=(new Date(d-d.getTimezoneOffset()*60000)).toISOString().slice(0,16);
-    b.innerHTML = `<form id="waF"><select id="waw" required>${Object.values(appCache.people).filter(p=>p.roles.includes('technician')).map(p=>`<option value="${p.id}">${p.fullName}</option>`).join('')}</select><input type="datetime-local" id="was" value="${iso}" required><button type="submit" class="btn btn-success mt-4">Assegna e Crea Task</button></form>`;
+    b.innerHTML = `<form id="waF"><select id="waw" required>${Object.values(appCache.people).filter(p=>p.roles.includes('technician') && p.id !== 'worker_luca').map(p=>`<option value="${p.id}" ${p.id==='worker_paolo'?'selected':''}>${p.fullName}</option>`).join('')}</select><input type="datetime-local" id="was" value="${iso}" required><button type="submit" class="btn btn-success mt-4">Assegna e Crea Task</button></form>`;
     b.querySelector('#waF').addEventListener('submit', async (e) => {
         e.preventDefault();
         await updateDoc(doc(db,"requests",reqId),{status:'assigned'});
@@ -825,7 +837,7 @@ window.openWorkerSessionWizard = () => {
     const myTodayTasks = liveTasks.filter(t=>t.assignedTo===currentUser.id && t.status!=='completed');
     const taskChecks = myTodayTasks.map(t=>`<label class="check-item"><input type="checkbox" value="${t.id}"> ${t.title}</label>`).join('');
     if(myTodayTasks.length===0) return alert("Non hai task attivi a cui associare il manovale!");
-    const wOpts = Object.values(appCache.external_workers).filter(w=>w.active).map(w=>`<option value="${w.id}" data-rate="${w.dailyRate}">${w.fullName}</option>`).join('');
+    const wOpts = Object.values(appCache.external_workers).filter(w=>w.active && w.id !== 'worker_luca').map(w=>`<option value="${w.id}" data-rate="${w.dailyRate}">${w.fullName}</option>`).join('');
     b.innerHTML = `<form id="wwF">
         <label>Seleziona Manovale</label>
         <select id="wwn" required><option value="">-- Scegliere Manovale --</option>${wOpts}</select>
