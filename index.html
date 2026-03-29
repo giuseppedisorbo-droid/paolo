@@ -198,60 +198,145 @@
             <button class="btn-close-modal" onclick="document.getElementById('guideModal').classList.remove('open')">&times;</button>
         </div>
         <div class="modal-body" style="font-size:0.95rem; line-height:1.6;">
-            
+
             <strong style="font-size:1.3rem; color:var(--primary); display:block; border-bottom:2px solid var(--border); padding-bottom:5px; margin-bottom:15px;">Capitolo 1: Gestione Operativa e Task</strong>
-            
             <p style="margin-bottom:10px;"><strong style="font-size:1.05rem;">1.1 Creazione di una Richiesta</strong></p>
             <p style="margin-bottom:10px;"><em>La creazione dei task è il cuore centrale del sistema, per tracciare ogni operazione.</em></p>
             <ul style="margin-left:20px; margin-bottom:15px; list-style-type:circle;">
-                <li>Puoi premere il tasto centrale <strong>"+"</strong> per avviare una nuova richiesta.</li>
-                <li>Il sistema assegnerà <em>automaticamente</em> il task all'operatore predefinito.</li>
-                <li>Non è più necessario selezionare il luogo a mano.</li>
+                <li>Premi il tasto centrale <strong>"+"</strong> per avviare una nuova richiesta.</li>
+                <li>Il sistema assegnerà automaticamente il task all'operatore predefinito.</li>
             </ul>
 
-            <p style="margin-bottom:10px;"><strong style="font-size:1.05rem;">1.2 Assegnazione Dettagli</strong></p>
-            <ul style="margin-left:20px; margin-bottom:20px; list-style-type:upper-alpha;">
-                <li><strong>Aggiunta Allegati:</strong> puoi inserire pdf, audio e video usando l'apposito bottone.</li>
-                <li><strong>Organizzazione:</strong> seleziona sempre le famiglie o organizzazioni coinvolte.</li>
-            </ul>
-
-            <strong style="font-size:1.3rem; color:var(--primary); display:block; border-bottom:2px solid var(--border); padding-bottom:5px; margin-bottom:15px;">Capitolo 2: Agenda e Calendario</strong>
-            
-            <p style="margin-bottom:10px;"><strong style="font-size:1.05rem;">2.1 Vista Calendario</strong></p>
-            <p style="margin-bottom:10px;"><em>Il monitoraggio delle scadenze è ora visibile istantaneamente su più livelli.</em></p>
-            <ul style="margin-left:20px; margin-bottom:15px; list-style-type:square;">
-                <li>Il calendario parte da <strong>Lunedì</strong> e si estende fino a Domenica sulle colonne a destra.</li>
-                <li>Puoi scorrere rapidamente tra le visualizzazioni Mese, Settimana e Giorno.</li>
-            </ul>
-
-            <p style="margin-bottom:10px;"><strong style="font-size:1.05rem;">2.2 Schede a Colori</strong></p>
-            <ul style="margin-left:20px; margin-bottom:15px; list-style-type:lower-alpha;">
-                <li>Cliccando un singolo giorno, la lista in basso si <em>filtra automaticamente</em>.</li>
-                <li>Ogni giorno della settimana possiede un suo <strong>colore specifico ad alto contrasto</strong> (Es. Rosso per Lunedì, Verde per Giovedì).</li>
-            </ul>
-
-            <p style="margin-bottom:10px;"><strong style="font-size:1.05rem;">2.3 Modifica in itinere</strong></p>
-            <ul style="margin-left:20px; margin-bottom:20px;">
-                <li>Cliccando su una scheda puoi aprire i dettagli, consuntivare orari o dichiararla completata.</li>
-            </ul>
-
-            <strong style="font-size:1.3rem; color:var(--primary); display:block; border-bottom:2px solid var(--border); padding-bottom:5px; margin-bottom:15px;">Capitolo 3: Cassa e Notifiche</strong>
-            
-            <p style="margin-bottom:10px;"><strong style="font-size:1.05rem;">3.1 Flusso Cassa</strong></p>
-            <p style="margin-bottom:10px;"><em>Tutta la finanza di cantiere è tracciata tramite la sezione "Cassa".</em></p>
+            <strong style="font-size:1.3rem; color:var(--primary); display:block; border-bottom:2px solid var(--border); padding-bottom:5px; margin-bottom:15px;">Capitolo 2: Flusso Magazzino e Logistica</strong>
+            <p style="margin-bottom:10px;"><strong style="font-size:1.05rem;">2.1 Materiali e Preparazione</strong></p>
             <ul style="margin-left:20px; margin-bottom:15px; list-style-type:circle;">
-                <li>Visualizzazione del portafoglio cassa in alto a destra sulla Home.</li>
-                <li>Registrazione <strong>Scontrini</strong> con caricamento immediato della foto.</li>
+                <li>Traccia la preparazione dei materiali con il badge Magazzino.</li>
+                <li>Per SEQEX segui gli step: Ricezione, Elaborazione, Magazzino e Consegna.</li>
             </ul>
 
-            <p style="margin-bottom:10px;"><strong style="font-size:1.05rem;">3.2 Notifiche Intelligenti</strong></p>
-            <ul style="margin-left:20px; margin-bottom:15px; list-style-type:lower-alpha;">
-                <li><strong>Avvisi automatici:</strong> tutto il team viene notificato dei nuovi inserimenti.</li>
-                <li><strong>Auto-Pulizia:</strong> le notifiche si eliminano da sole il giorno successivo all'evento pianificato.</li>
-                <li>Puoi forzare la chiusura di un avviso semplicemente <em>cliccandoci sopra</em> per segnarlo letto.</li>
+            <strong style="font-size:1.3rem; color:var(--primary); display:block; border-bottom:2px solid var(--border); padding-bottom:5px; margin-bottom:15px;">Capitolo 3: Calendario e Messa in Opera</strong>
+            <p style="margin-bottom:10px;"><strong style="font-size:1.05rem;">3.1 Visualizzazione Interventi</strong></p>
+            <ul style="margin-left:20px; margin-bottom:15px; list-style-type:circle;">
+                <li>Calendario settimanale e mensile con codice colore (Rosso=Lunedì).</li>
+                <li>Avvia Giornate Manovale o segna la presenza in cantiere.</li>
             </ul>
 
-            <p style="margin-top:20px; text-align:center; color:var(--text-muted); font-size:0.8rem;"><em>Progetto Paolo V3.6 - Tutti i diritti riservati.</em></p>
+            <strong style="font-size:1.3rem; color:var(--primary); display:block; border-bottom:2px solid var(--border); padding-bottom:5px; margin-bottom:15px;">Capitolo 4: Gestione Finanziaria e Cassa</strong>
+            <p style="margin-bottom:10px;"><strong style="font-size:1.05rem;">4.1 Scontrini e Budget</strong></p>
+            <ul style="margin-left:20px; margin-bottom:15px; list-style-type:circle;">
+                <li>Registra gli scontrini fotografando le ricevute.</li>
+                <li>Visualizza il portafoglio cassa sull'header.</li>
+            </ul>
+
+            <strong style="font-size:1.3rem; color:var(--primary); display:block; border-bottom:2px solid var(--border); padding-bottom:5px; margin-bottom:15px;">Capitolo 5: Supporto AI e Notifiche</strong>
+            <p style="margin-bottom:10px;"><strong style="font-size:1.05rem;">5.1 Integrazione Intelligente</strong></p>
+            <ul style="margin-left:20px; margin-bottom:15px; list-style-type:circle;">
+                <li>Usa l'Aiuto AI per risolvere problemi, creare richieste o cercare procedure.</li>
+                <li>Sistema di notifica avvisa i partner delle nuove richieste con pulizia autonoma.</li>
+            </ul>
+<strong style="font-size:1.3rem; color:var(--primary); display:block; border-bottom:2px solid var(--border); padding-bottom:5px; margin-top:20px; margin-bottom:15px;">Glossario dei 100 Termini Principali</strong>
+<div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap:10px; font-size:0.85rem;">
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Admin</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Agenda</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Aiuto AI</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Allegati</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Approvazione</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Assegnatario</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Assistente</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Associazione</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Audio</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Automazione</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Badge</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Badge Magazzino</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Budget</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Button</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Cache</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Calendario</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Carico</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Cassa</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Certificazione</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Completamento</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Completato</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Consegna SEQEX</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Consuntivo</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Context Banner</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Costo</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Creatore</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Data Acquisto</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Database</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Dettaglio</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Dino (Worker)</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Direttorio</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Documenti</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Dropdown</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Elaborazione SEQEX</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Euro</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>FAB (+)</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Famiglia</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Feed</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Filter</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Finanza</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Firmware</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Foto</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Generazione PDF</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Giacenza</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Giornata Manovale</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Giuseppe (Partner)</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Header</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Home</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Importo</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Impostazioni</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>In-progress</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Inserimento Spesa</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Intervento</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Kit</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Lavorazione</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Location</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Login</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Logistica</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Luogo</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Magazzino</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Manutenzione</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Materiale</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Messaggi</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Modal</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Notifica Push</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Notifiche</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Nuova Assegnazione</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Offline Mode</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Operatore</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Organizzazione</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Overlay</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>PWA</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Paolo (Worker)</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Partner</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Pendente</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Portafoglio</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Preparazione</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Programma</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Prompt</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Proprietà</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Report</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Revisione</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Ricezione SEQEX</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Rich Description</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Richiesta</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Rimborso</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Ripartizione</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Ruoli</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Scadenza</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Scarico</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Scheda</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Scontrino</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Scorta</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Search</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Service Worker</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Sincronizzazione</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Stato Indice</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Suggerimenti</strong></div>
+  <div style="background:var(--secondary); padding:8px; border-radius:6px; border:1px solid var(--border); text-align:center;"><strong>Task</strong></div>
+</div>
+<p style="margin-top:30px; text-align:center; color:var(--text-muted); font-size:0.8rem;"><em>Progetto Paolo V5.0 - Tutti i diritti riservati.</em></p>
         </div>
     </div>
 
