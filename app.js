@@ -79,7 +79,7 @@ window.markNotifRead = async(id)=>updateDoc(doc(db,"notifications",id),{read:tru
 
 function boot() {
     const dName = currentUser.fullName || currentUser.name || currentUser.id;
-    document.getElementById('headerUserInfo').textContent = `${dName} | v6.2`;
+    document.getElementById('headerUserInfo').textContent = `${dName} | v6.3`;
     const r = currentUser.roles||[];
     let nav = '';
     const isSuper = r.includes('admin') || r.includes('owner') || r.includes('management_control') || r.includes('admin_support') || r.includes('domain_approver');
@@ -582,7 +582,10 @@ window.openTaskDetail = (taskId) => {
     if(t.status !== 'completed') acts = `<button class="btn btn-warning mb-2" style="width:100%; color:black;" onclick="window.openNewRequestWizard('${t.id}')">✏️ Modifica Task</button>` + acts;
     acts += `<button class="btn btn-danger btn-outline mt-4" onclick="window.execAction('DEL_TASK','${t.id}')">🗑️ Elimina</button>`;
 
-    document.getElementById('taskDetailContent').innerHTML = `<span class="status-badge status-${t.status} mb-2">${window.getStatusText(t.status)}</span><h2 class="mb-2">${t.title}</h2><div class="entity-tags">${getEntTags(t.familyIds,t.organizationIds)}</div>${supW}<p class="mt-2">${t.description}</p><h4 class="mt-4">Spese (Allocation Summary)</h4>${expHtml}`;
+    const wv = liveWorkSessions.filter(w=>w.taskId===taskId);
+    const wrkHtml = wv.length===0?'<div class="text-muted" style="font-size:0.85rem;">Nessuna manovalanza.</div>':wv.map(w=>`<div class="flex-between" style="margin-top:5px; border-top:1px dashed #eee; padding-top:5px;"><span>${appCache.external_workers[w.workerId]?.fullName||w.workerId} (${w.hours}h)</span><strong>€${w.cost.toFixed(2)}</strong></div><div style="font-size:0.75rem; color:var(--text-muted)">${(w.allocations||[]).map(a=>`${appCache.organizations[a.entityId]?.name || appCache.families[a.entityId]?.name || a.entityId}(${a.percentage.toFixed(0)}%)`).join(', ')}</div><div class="mt-1" style="text-align:right;"><button class="btn btn-outline" style="padding:4px 8px; font-size:0.75rem; margin-right:5px;" onclick="window.editWorkSession('${w.id}')">✏️ Modifica</button><button class="btn btn-danger btn-outline" style="padding:4px 8px; font-size:0.75rem;" onclick="window.deleteWorkSession('${w.id}')">🗑️ Elimina</button></div>`).join('');
+    
+    document.getElementById('taskDetailContent').innerHTML = `<span class="status-badge status-${t.status} mb-2">${window.getStatusText(t.status)}</span><h2 class="mb-2">${t.title}</h2><div class="entity-tags">${getEntTags(t.familyIds,t.organizationIds)}</div>${supW}<p class="mt-2">${t.description}</p><h4 class="mt-4">Spese Materiali</h4>${expHtml}<h4 class="mt-4">Costi Manovalanza</h4>${wrkHtml}`;
     const logH = liveLogs.filter(l=>l.entityId===taskId).sort((a,b)=>b.timestamp-a.timestamp).map(l=>`<div style="font-size:0.75rem; border-left:2px solid #ccc; padding-left:5px;"><strong>${l.userName}</strong>: ${l.action}</div>`).join('');
     const isSuper = currentUser.roles.includes('admin') || currentUser.roles.includes('owner') || currentUser.roles.includes('management_control') || currentUser.roles.includes('admin_support') || currentUser.roles.includes('domain_approver');
     document.getElementById('taskDetailContent').innerHTML += isSuper ? `<h4 class="mt-4">Audit Logs</h4>${logH}` : '';
@@ -1139,6 +1142,32 @@ window.submitAiPrompt = async () => {
         document.getElementById('aiLoadingIndicator').style.display = 'none';
         alert('Errore di connessione con AI.');
     }
+};
+
+window.deleteWorkSession = async (id) => {
+    if(!confirm("Vuoi annullare questa sessione di lavoro e stornare il costo?")) return;
+    try {
+        await deleteDoc(doc(db, "work_sessions", id));
+        document.getElementById('taskDetailModal').classList.remove('open');
+        renderReport();
+        renderFinance();
+    } catch(e) { alert("Errore durante l'eliminazione."); }
+};
+
+window.editWorkSession = async (id) => {
+    const ws = liveWorkSessions.find(x => x.id === id);
+    if(!ws) return;
+    const nCost = prompt("Nuovo Costo Totale da imputare al Manovale (€):", ws.cost || 0);
+    if(nCost === null) return;
+    const nCostFloat = parseFloat(nCost);
+    if(isNaN(nCostFloat) || nCostFloat < 0) { alert("Importo non valido"); return; }
+    
+    try {
+        await updateDoc(doc(db, "work_sessions", id), { cost: nCostFloat });
+        document.getElementById('taskDetailModal').classList.remove('open');
+        renderReport();
+        renderFinance();
+    } catch(e) { alert("Errore durante la modifica."); }
 };
 
 init();
