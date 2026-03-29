@@ -20,7 +20,7 @@
         });
     </script>
     <title>Progetto Paolo V3</title>
-    <link rel="stylesheet" href="style.css?v=6.3">
+    <link rel="stylesheet" href="style.css?v=6.4">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -30,7 +30,7 @@
         <div class="modal-body" style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:100%; background:white;">
             <div style="text-align: center; margin-bottom: 30px;">
                 <h1 style="color:var(--primary); font-size:2rem; margin-bottom:10px; line-height:1.2;">Gestione Attività<br>Manutenzione</h1>
-                <p style="color:var(--text-muted); line-height:1.4;"><strong>v6.3</strong></p>
+                <p style="color:var(--text-muted); line-height:1.4;"><strong>v6.4</strong></p>
             </div>
             <select id="loginSelect" style="max-width: 300px;">
                 <option value="">Caricamento utenti...</option>
@@ -43,7 +43,7 @@
     <header class="top-header">
         <div style="display:flex; flex-direction:column;">
             <h1 id="headerTitle" style="margin:0; line-height:1;">Home</h1>
-            <div id="headerUserInfo" style="font-size:0.7rem; font-weight:600; color:var(--text-muted); margin-top:2px;">v6.3</div>
+            <div id="headerUserInfo" style="font-size:0.7rem; font-weight:600; color:var(--text-muted); margin-top:2px;">v6.4</div>
         </div>
         <div style="display:flex; gap:15px; align-items:center;">
             <div id="headerWallet" class="wallet-badge hidden">€ 0.00</div>
@@ -210,7 +210,8 @@
                     <button class="btn btn-outline mb-3" style="justify-content:flex-start; font-weight:700; font-size:1rem; padding:15px;" onclick="window.openChapter(3)">Capitolo 3 - Ripartizione, Cassa e Finanza</button>
                     <button class="btn btn-outline mb-3" style="justify-content:flex-start; font-weight:700; font-size:1rem; padding:15px;" onclick="window.openChapter(4)">Capitolo 4 - Direttorio, Organizzazioni e Famiglie</button>
                     <button class="btn btn-outline mb-3" style="justify-content:flex-start; font-weight:700; font-size:1rem; padding:15px;" onclick="window.openChapter(5)">Capitolo 5 - Supporto Intelligente e Notifiche</button>
-                    <button class="btn btn-primary mb-3" style="justify-content:flex-start; font-weight:700; font-size:1rem; padding:15px;" onclick="window.openChapter(6)">Capitolo 6 - Glossario Tecnico (40 Termini)</button>
+                    <button class="btn btn-outline mb-3" style="justify-content:flex-start; font-weight:700; font-size:1rem; padding:15px;" onclick="window.openChapter(6)">Capitolo 6 - Glossario Tecnico (40 Termini)</button>
+                    <button class="btn btn-primary mb-3" style="justify-content:flex-start; font-weight:700; font-size:1rem; padding:15px; background:var(--success); border:none;" onclick="window.openChapter(7)">🌟 NOVITÀ: Capitolo 7 - Ultimi Aggiornamenti</button>
                 </div>
             </div>
 
@@ -318,6 +319,16 @@
                         <li style="margin-bottom:8px; border-bottom:1px dashed var(--border);"><strong>40. Wallet:</strong> Sull'interfaccia Home (in Cima Destra o Sinistra) il badge verde o rosso monetario dei TUOI esatti importi rimanenti d'ufficio prima di dover fare richieste SOS soldi (Ricariche).</li>
                     </ul>
                 </div>
+
+                <div id="chap7" class="guide-chap" style="display:none;">
+                    <h2 style="color:var(--success); margin-bottom:20px; border-bottom:3px solid var(--border); padding-bottom:10px;">Capitolo 7 - Novità e Ultimi Aggiornamenti (v6.4)</h2>
+                    <ul style="margin-left:20px; line-height:1.8; list-style-type:circle;">
+                        <li style="margin-bottom:15px;"><strong>Assegnazione Dinamica dei Task:</strong> Quando si crea un <em>Nuovo Task</em>, non è più assegnato forzatamente a Paolo di default. Ora c'è un comodo <strong>menu a tendina</strong> per scegliere subito a quale tecnico destinare il lavoro, oppure lasciarlo "Da decidere".</li>
+                        <li style="margin-bottom:15px;"><strong>Gestione Avanzata Manovalanza:</strong> Hai inserito ore di lavoro per un operatore esterno (es. Antimo, Dino) ma l'importo totale era sbagliato? Niente panico! Entrando nel <strong>Dettaglio del Task</strong> troverai la lista dei turni di manovalanza con i nuovi pulsanti <strong>"✏️ Modifica"</strong> e <strong>"🗑️ Elimina"</strong> per correggere il costo in un tocco. I report in finanza scalano le somme in automatico.</li>
+                        <li style="margin-bottom:15px;"><strong>Calendario (Agenda) Globale:</strong> L'icona <strong>"Agenda"</strong> nella barra di navigazione in basso è stata attivata per <em>TUTTI</em> gli utenti della piattaforma. Ogni persona visualizzerà esattamente le mansioni che gli competono (gli Admin vedranno tutto, i tecnici i propri compiti, i proprietari i loro averi).</li>
+                        <li style="margin-bottom:15px;"><strong>Reattività Istantanea:</strong> La bacheca iniziale (<em>Home</em>) ora riconosce esattamente gli autori delle proposte (es. "Proposto da Stefano" anziché un laconico "Proposto da Paolo") e <em>si aggiorna istantaneamente</em> da sola non appena un task viene salvato. Mai più ricaricamenti (F5) obbligati!</li>
+                    </ul>
+                </div>
             </div>
 
             <script>
@@ -326,7 +337,7 @@
                     document.getElementById('guideSearchInput').style.display = 'none';
                     document.getElementById('guideSearchResults').style.display = 'none';
                     document.getElementById('guideContent').style.display = 'block';
-                    for(let i=1; i<=6; i++) {
+                    for(let i=1; i<=7; i++) {
                         let chp = document.getElementById('chap' + i);
                         if(chp) chp.style.display = (i === n) ? 'block' : 'none';
                     }
@@ -356,7 +367,7 @@
 
                     // Collect all text
                     let allResults = '';
-                    for(let i=1; i<=6; i++) {
+                    for(let i=1; i<=7; i++) {
                         const chap = document.getElementById('chap' + i);
                         if(!chap) continue;
                         const h2 = chap.querySelector('h2');
@@ -395,7 +406,7 @@
       }
     </script>
     <!-- Logic -->
-    <script type="module" src="app.js?v=6.3"></script>
+    <script type="module" src="app.js?v=6.4"></script>
 
     <!-- PWA Installation Logic -->
     <script>
