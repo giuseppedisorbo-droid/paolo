@@ -20,7 +20,7 @@
         });
     </script>
     <title>Progetto Paolo V3</title>
-    <link rel="stylesheet" href="style.css?v=5.2">
+    <link rel="stylesheet" href="style.css?v=5.3">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -30,7 +30,7 @@
         <div class="modal-body" style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:100%; background:white;">
             <div style="text-align: center; margin-bottom: 30px;">
                 <h1 style="color:var(--primary); font-size:2rem; margin-bottom:10px; line-height:1.2;">Gestione Attività<br>Manutenzione</h1>
-                <p style="color:var(--text-muted); line-height:1.4;"><strong>v5.2</strong></p>
+                <p style="color:var(--text-muted); line-height:1.4;"><strong>v5.3</strong></p>
             </div>
             <select id="loginSelect" style="max-width: 300px;">
                 <option value="">Caricamento utenti...</option>
@@ -43,7 +43,7 @@
     <header class="top-header">
         <div style="display:flex; flex-direction:column;">
             <h1 id="headerTitle" style="margin:0; line-height:1;">Home</h1>
-            <div id="headerUserInfo" style="font-size:0.7rem; font-weight:600; color:var(--text-muted); margin-top:2px;">v5.2</div>
+            <div id="headerUserInfo" style="font-size:0.7rem; font-weight:600; color:var(--text-muted); margin-top:2px;">v5.3</div>
         </div>
         <div style="display:flex; gap:15px; align-items:center;">
             <div id="headerWallet" class="wallet-badge hidden">€ 0.00</div>
@@ -193,6 +193,199 @@
 
     <!-- Guide Modal (Settings / Tutorial) -->
     <div id="guideModal" class="modal-fs">
+        <div class="modal-header">
+            <h2>⚙️ Impostazioni e Guida</h2>
+            <button class="btn-close-modal" onclick="document.getElementById('guideModal').classList.remove('open')">&times;</button>
+        </div>
+        <div class="modal-body" style="font-size:0.95rem; line-height:1.6;">
+
+            <div id="guideMenu">
+                <input type="text" id="guideSearchInput" placeholder="🔍 Cerca argomenti, termini o procedure..." style="width:100%; padding:14px; margin-bottom:20px; border-radius:12px; border:2px solid var(--primary); font-size:1rem; outline:none;" onkeyup="window.searchGuide()">
+                
+                <div id="guideSearchResults" style="display:none; margin-bottom:20px; padding:15px; background:var(--secondary); border-radius:12px; max-height:400px; overflow-y:auto; border:1px solid var(--border);"></div>
+
+                <div id="guideButtons">
+                    <button class="btn btn-outline mb-3" style="justify-content:flex-start; font-weight:700; font-size:1rem; padding:15px;" onclick="window.openChapter(1)">Capitolo 1 - Creazione e Gestione dei Task</button>
+                    <button class="btn btn-outline mb-3" style="justify-content:flex-start; font-weight:700; font-size:1rem; padding:15px;" onclick="window.openChapter(2)">Capitolo 2 - Agenda, Calendario e Interventi</button>
+                    <button class="btn btn-outline mb-3" style="justify-content:flex-start; font-weight:700; font-size:1rem; padding:15px;" onclick="window.openChapter(3)">Capitolo 3 - Ripartizione, Cassa e Finanza</button>
+                    <button class="btn btn-outline mb-3" style="justify-content:flex-start; font-weight:700; font-size:1rem; padding:15px;" onclick="window.openChapter(4)">Capitolo 4 - Direttorio, Organizzazioni e Famiglie</button>
+                    <button class="btn btn-outline mb-3" style="justify-content:flex-start; font-weight:700; font-size:1rem; padding:15px;" onclick="window.openChapter(5)">Capitolo 5 - Supporto Intelligente e Notifiche</button>
+                    <button class="btn btn-primary mb-3" style="justify-content:flex-start; font-weight:700; font-size:1rem; padding:15px;" onclick="window.openChapter(6)">Capitolo 6 - Glossario Tecnico (40 Termini)</button>
+                </div>
+            </div>
+
+            <div id="guideContent" style="display:none;">
+                <button class="btn btn-secondary mb-4" onclick="window.closeChapter()" style="background:#e2e8f0; color:#0f172a; border:none; width:auto; padding:10px 15px; font-weight:bold;">⬅️ Torna al Menu Principale</button>
+                
+                <div id="chap1" class="guide-chap" style="display:none;">
+                    <h2 style="color:var(--primary); margin-bottom:20px; border-bottom:3px solid var(--border); padding-bottom:10px;">Capitolo 1 - Creazione e Gestione dei Task</h2>
+                    <ul style="margin-left:20px; line-height:1.8; list-style-type:square;">
+                        <li style="margin-bottom:20px;"><strong>L'Inizializzazione Delle Richieste Esterne e Interne:</strong> Il fulcro insostituibile attorno al quale ruota l'intero ecosistema della nostra piattaforma è la <em>Richiesta d'Intervento</em> (spesso indicata con il termine tecnico <strong>Task</strong>). In qualsiasi momento della giornata, un amministratore o un operatore abilitato ha la piena e totale facoltà di generare una nuova commessa lavorativa. Questo si ottiene semplicemente sfiorando il maestoso pulsante d'azione <strong>"+"</strong> posizionato fedelmente in basso a destra. Non appena pigiato, una finestra dinamica prende istantaneamente il sopravvento sullo schermo (il famoso <em>Wizard di Inserimento</em>), esigendo preliminarmente un titolo coerente che incapsuli la natura del guasto o del lavoro da portare a compimento in maniera tempestiva e definitiva.</li>
+                        
+                        <li style="margin-bottom:20px;"><strong>Arricchimento Descrittivo e Prova Fotografica (Rich Description):</strong> Riconoscendo i profondi limiti di un semplice titolo testuale sbrigativo, il software è stato potentemente armato di un modulo espanso denominato <em>Rich Description</em>. Trovando rifugio dietro l'apposito pulsante celestino <strong>"✏️ Aggiungi Dettagli/Allegati"</strong>, l'utente scivola verso una schermata in cui tracciare lunghissimi log logorroici, note meticolose fornite dal proprietario dell'immobile, e, fattore decisivo e discriminante, incollare i <strong>files multimediali in formato PDF, video, audio o foto nitide</strong> che immortalino impietosamente lo stato dello stabile o dell'apparecchiatura muraria prima del passaggio del tecnico aziendale.</li>
+                        
+                        <li style="margin-bottom:20px;"><strong>Il Filtro Dell'Approvazione e La Scelta Delle Risorse Umane:</strong> Quando una richiesta nasce dalla base, ovvero dall'operatore tecnico periferico, essa non sbarca automaticamente a sistema come intervento calendarizzato, ma galleggia in un limbo contrassegnato dal marchio giallo di <em>"Proposta (In Attesa)"</em>. È assoluta prerogativa del <strong>Supervisore</strong> o dell'<strong>Amministratore Giuseppe</strong> visionare criticamente la pletora delle istanze accumulatesi, vagliarle, e cliccare infine sul trionfale pulsante di accettazione. In quel momento catartico, egli indicherà inequivocabilmente l'operatore finale da sacrificare alla causa, decidendo in quale casella cronologica andrà depositato il fardello.</li>
+                        
+                        <li style="margin-bottom:20px;"><strong>Manipolazione Delle Urgenze E Priorità Di Tracciamento:</strong> Poiché non tutti i mali avvengono per nuocere allo stesso modo, si impone spesso l'esigenza di ribaltare del tutto le regole dello scorrimento naturale dell'azienda. Adoperando il flag di <strong>Urgenza Massima</strong>, la normale programmazione cede subitaneamente il passo all'allarme rosso; la scheda innescata divampa nel feed assumendo uno status preponderante accompagnato dal badge letale <em>"🚨 URGENTE"</em>, forzando la mente dell'assegnatario Paolo o Luca ad ignorare palesemente qualsiasi altro impegno pregresso per convogliarsi con i furgoni verso l'indirizzo disastrato salvaguardando così la clientela.</li>
+                        
+                        <li style="margin-bottom:20px;"><strong>Declino Naturale del Task e Dichiarazione Di Conclusione Lavori:</strong> Un compito in esecuzione assume la colorazione distintiva in-progress e tale rimarrà finché il sudore non sarà versato integralmente. Una volta giunti all'atto risolutorio, all'operaio in loco spetta il privilegio liberatorio di schiacciare prepotentemente il pulsante verde <strong>"✔️ Completato"</strong>. Conducendo questo ultimo passaggio inequivocabile, l'intero blocco del task viene isolato, serrato rigidamente ed immagazzinato irrevocabilmente negli archivi del server cloud <em>Firebase</em>; svanendo dalla vista mattutina sgombra lo spazio di pensiero e transita serenamente nella memoria di fine mese contabile.</li>
+                    </ul>
+                </div>
+
+                <div id="chap2" class="guide-chap" style="display:none;">
+                    <h2 style="color:var(--primary); margin-bottom:20px; border-bottom:3px solid var(--border); padding-bottom:10px;">Capitolo 2 - Agenda, Calendario e Interventi</h2>
+                    <ul style="margin-left:20px; line-height:1.8; list-style-type:circle;">
+                        <li style="margin-bottom:20px;"><strong>Espansione Geografica Tramite Motore FullCalendar:</strong> L'esplorazione del tempo e degli appuntamenti si smarca dalla banalità della lista scorrevole e abbraccia la titanica potenza visiva offerta dalla vista denominata <em>"Agenda"</em>. Grazie all'implementazione strutturale della libreria terza <strong>FullCalendar</strong>, l'orizzonte si allarga mettendo a disposizione dei quadri mensili grandiosi oppure focali viste settimanali o giornaliere; permettendovi in questo modo di sbrogliare rapidamente l'incrociarsi infernale di dozzine e dozzine di chiamate altrimenti insondabili.</li>
+                        
+                        <li style="margin-bottom:20px;"><strong>Identificazione Fulminea Tramite Palettes Giornaliere:</strong> L'occhio umano necessita di appigli rapidi e non di tediosa lettura accademica, soprattutto se esposto al sole di un cantiere polveroso. Ragion per cui, a ciascun singolo giorno lavorativo in calendario è stata fusa irreversibilmente la sua maglia cromatica ad alto contrasto. I <strong>Lunedì</strong> si vestono di rabbioso <em>rosso sanguigno</em>, i <strong>Martedì</strong> s'infiammano in rassicurante <em>arancio</em> e via discorrendo, tramutando scialbe etichette in potenti richiami visivi assorbiti dalle retine.</li>
+                        
+                        <li style="margin-bottom:20px;"><strong>Raggruppamenti Fasciali "Mattina" e "Pomeriggio":</strong> Invece di affidare allo sventurato lavoratore l'arduo cruccio d'ordinare cerebralmente le priorità orarie, l'intelligenza applicativa preleva a forza le singole schedine sparse e le inasella secondo ordini ferrei e dogmatici. Si accatastano sulla sommità del monitor le criticità urgenti, seguite per l'appunto in prima linea ed in blocco dal robusto schieramento degli adempimenti categorizzati fermamente come <strong>"☀️ Mattina"</strong>, per defluire morbidamente nei ritardatari etichettati <em>"🌙 Pomeriggio"</em>.</li>
+                        
+                        <li style="margin-bottom:20px;"><strong>Potere d'Inchiesta Col Filtro Touch (Focus Date):</strong> Scorrendo la lista agenda strabordante, capita spesso d'impaludarsi irrimediabilmente nelle decine d'occorrenze simultanee e mischiate. La salvezza dimora nel compiere un semplicissimo <em>tap chirurgico</em> scoccato sul riquadro netto d'una data nel calendario; come per magia tutti gli agenti contaminanti scompaiono ed i tabulati inferiori filtreranno puramente le istanze programmate esclusivamente per <strong>quella singola precisa casella vitale</strong>. Un clic successivo azzera il filtro mostrando il flusso generale (<em>Mostra Tutti</em>).</li>
+                        
+                        <li style="margin-bottom:20px;"><strong>Contabilità Delle Forze Esterne (Giornata Manovale):</strong> Pur non sussistendo una riparazione meccanica precisa, accade che le maestranze in partita iva necessitino dell'ausilio di bruta forza carpentiera. Qui scende in campo lo strumento <strong>"👨‍🔧 Giornata Manovale"</strong>, visibile agli operativi con un bottone grigio scuro. Esso serve ad ammettere, nei registri del supervisore, che oggi l'operaio indipendente (es. tale Antimo o Dino) sta spaccando mattoni e che ineluttabilmente quelle fatiche suderanno nei cruscotti contabili trasformandosi in fiumi di rendiconti economici da sanare.</li>
+                    </ul>
+                </div>
+
+                <div id="chap3" class="guide-chap" style="display:none;">
+                    <h2 style="color:var(--primary); margin-bottom:20px; border-bottom:3px solid var(--border); padding-bottom:10px;">Capitolo 3 - Ripartizione, Cassa e Finanza</h2>
+                    <ul style="margin-left:20px; line-height:1.8; list-style-type:disc;">
+                        <li style="margin-bottom:20px;"><strong>Il Concetto di Portafoglio Circolante (Wallet):</strong> Ogni tecnico gettato a sgobbare lungo le strade è fornito preventivamente di munizioni finanziarie per attutire spese minori irrinunciabili. In testa ad ogni impaginazione dell'opera software troneggia fiero un badge verde recante le misurazioni di un saldo al centesimo. Questo ammontare si qualifica come <em>Wallet Corrente</em>, il quale precipita rovinosamente mano a mano che l'utente inserisce spese vive sostenute, ed impenna gloriosamente nel preciso istante in cui <strong>l'Admin</strong> si appresta a sbloccare salvifici rifornimenti bonari detti "Ricarica Fondo".</li>
+                        
+                        <li style="margin-bottom:20px;"><strong>Esborso, Decurtamento Rapido ed Azione Subitanea:</strong> Scordatevi noiosi scartoffiamenti a catena: qualora l'intento consti nell'acquisizione di una mazzetta di vernici e viti in fermento d'opera, occorre sfiorare nient'altro che il mirabile tasto di <em>Aggiunta Spesa</em> inglobato nel task stesso (nelle <strong>Quick Actions</strong> o nella vista Finanza). Si dichiara al momento l'importo e subitaneamente l'ingegno sgrava con calcolo felino quelle cifre intaccando la quota globale, allentando così d'un tratto qualsivoglia dubbio circa chi e quando ha scucito quanti euro dal monte depositi.</li>
+                        
+                        <li style="margin-bottom:20px;"><strong>Lo Scontrino Fotografico Elevato a Conditio Sine Qua Non:</strong> Sventare corruzioni o ammancature inspiegabili dettate da negligenze o peggio da frode s'impone quale imperativo morale verso i soci. Conseguentemente nessuno, per nessun motivo o emergenza, può registrare uscite valide in assenza di un tag fotografico scattato istantaneamente sul talloncino cartaceo stampato dal fornitore esterno. Qualora la fotocamera stenti ad accendersi o il file sfugga in acquisizione, all'audace inserzionista verrà propinato un crudo banner minatorio <em>"⚠️ MANCA SCONTRINO"</em>, il quale getterà nel buio limbo della "Spesa in Attesa" i suoi denari reclamati invano.</li>
+                        
+                        <li style="margin-bottom:20px;"><strong>L'Antica Arte della Ripartizione dei Costi (Allocation Wizard):</strong> Al volgere della giornata lavorativa scatta il grande computo finale presso le stanze dei <strong>Supervisori</strong> e del dirigente contabile. Questi accedono armati e spietati alla console dei Fondi accumulati e, sfruttando le maglie del software <em>"Allocation Wizard"</em> (finestra spalmante modale specializzata), stabiliscono in millimetri percentuali quanto dell'indotto di quell'acquisto dal fruttivendolo o dal meccanico andrà sputato forzatamente in seno alle fatturazioni per la <strong>Famiglia A</strong> oppure scaricato rovescio sul tetto delle spalle robuste dell'<strong>Organizzazione B</strong>.</li>
+                        
+                        <li style="margin-bottom:20px;"><strong>Il Panopticon dei Totali nel Motore di Finanza Centralizzata:</strong> Affatto celati nei bit impalpabili, la dirigenza si gode comodamente sulla speciale e confidenziale vista <em>"Finanza/Cassa"</em> ogni recondita sfumatura legata al passaggio di beni di valore. Tutti i versamenti elargiti ai ragazzi congiunti ai rendiconti sulle manovalanze esternalizzate compiono lì una sfilata ordinata, riga dopo riga, mostrati con crudeltà contabile o benevolenza di cifre. Il tutto confluisce armonicamente anche nella sezione del <strong>"Report"</strong>, pronto alla succulenta e succosa disamina societaria e all'esportazione verso macchine commercialiste.</li>
+                    </ul>
+                </div>
+
+                <div id="chap4" class="guide-chap" style="display:none;">
+                    <h2 style="color:var(--primary); margin-bottom:20px; border-bottom:3px solid var(--border); padding-bottom:10px;">Capitolo 4 - Direttorio, Organizzazioni e Famiglie</h2>
+                    <ol style="margin-left:20px; line-height:1.8;">
+                        <li style="margin-bottom:20px;"><strong>Il Baluardo Irremovibile Delle Assegnazioni Costi:</strong> Null'azione, per magra che sia, si libra in volo priva di un'ancora a cui appendersi solidamente in sede economica successiva. Che ci si impegni in riparazioni di docce, in apposizione di intonachi sgretolati o sgorghi di gronde ostruite, la burocrazia del server decreta intollerabilmente l'omissione di colui che detiene la radice fondante dell'assessorato tributario. Ciascun task <strong>deve e dovrà</strong> presentare marcature spuntate ed evidenti verso l'una o l'altra <em>Organizzazione</em> (enti o agenzie) o puramente imputabili alla <em>Famiglia</em> preposta a saldare i debiti.</li>
+                        
+                        <li style="margin-bottom:20px;"><strong>La Riforma Visiva dei Menu a Fisarmonica:</strong> Poiché non è dato per assunto che le compagnie debbano stagnare con i propri referenti, le voci inseribili son proliferate ad ammontari incalcolabili. Il <strong>Direttorio</strong> s'era espanso enormemente fino a fagocitare il pollice dell'utente, ragione in base al quale, ad oggi, i blocchi informativi giacciono pudicamente rintanati. Presentati in veste di formidabili grossi colossi testuali colorati, basterà premere su titoletti quali <em>"Organizzazioni (5)"</em> od anche <em>"Famiglie (8)"</em> per srotolare maestosamente un tappeto verso il sottosuolo rivelando solo i contatti richiesti, alleggerendo l'ingombro oculare con estrema finezza tecnica.</li>
+                        
+                        <li style="margin-bottom:20px;"><strong>L'Immissione Chirurgica ed i Tasti Di Popolamento Istantaneo:</strong> Quando un'impresa o nucleo domestico sfoggia nuove pertinenze o varca l'ingresso dei locali come freschi contraenti d'opera, colui preposto a dominare il registro attingerà le sue pretese ai pulsanti grigi e robusti incastonati nella sezione. Il tocco gentile sopra <strong>"➕ Aggiungi [Tipo]"</strong> aprirà una feritoia in forma di casella popup, permettendo all'utente di riversare lì dentro e scrivere la parola voluta; un secondo dopo essa si schianterà su <em>Firebase</em> allargandosi universalmente ai cataloghi esecutori di tutti senza intoppi alcuno e con rapidità disarmante e definitiva.</li>
+                        
+                        <li style="margin-bottom:20px;"><strong>Luoghi Espansi e Tassello Fondamentale d'Azione (Locations):</strong> Distaccati dalle pure questioni finanziare ed assorbitive, albergano in fondo al girone directory i proverbiali referenti geografici: i fantasmagorici <strong>Luoghi</strong> (codificati in inglese con lo strambo selettore <em>LocationId</em>). Ciascun intervento non si manifesta in spazi aerei, bensì su pavimenti solidi. Questa griglia annovera gli asset spaziali con i quali la truppa di tecnici intesse la mappa fisica, e proprio al primo squillo di tromba del nuovo "Task" esso necessita impellentemente d'individuarsi congiuntamente al nome prelevato rigorosamente da questa esatta stringa anagrafica inserita dall'amministratore centrale.</li>
+                        
+                        <li style="margin-bottom:20px;"><strong>Suddivisioni Fisse Dei Permessi Visivi Sui Dati Di Rubrica:</strong> Badate bene che la democrazia del software cessa proprio innanzi i recinti contabili e geografici di rubrica espansa. Colui designato misero manovratore ed <em>Operativo</em> di base viaggerà schermato dalla verità totale. Ai dipendenti verrà impedita la gioia ispezionante dell'intero Direttorio nella sua maestosità; l'accesso ed il dispiego integrale delle trinità informative di <strong>Famiglie</strong> e delle estese ramificazioni d'<strong>Organizzazione Partner</strong> è retaggio divino e insindacabile del solo Amministratore (Admin) e dei sodali Supervisori dotati della luccicante e speciale tessera al merito d'esplorazione finanziaria interna aziendale e padronale incondizionata.</li>
+                    </ol>
+                </div>
+
+                <div id="chap5" class="guide-chap" style="display:none;">
+                    <h2 style="color:var(--primary); margin-bottom:20px; border-bottom:3px solid var(--border); padding-bottom:10px;">Capitolo 5 - Supporto Intelligente e Notifiche</h2>
+                    <ul style="margin-left:20px; line-height:1.8; list-style-type:square;">
+                        <li style="margin-bottom:20px;"><strong>Il Cuore Pulsante (Aiuto AI) E Il Costrutto Intelligente Nascosto:</strong> Per arginare lo scoraggiamento iniziale dettato dall'ingresso irruento e travolgente nella sfera digitale lavorativa apposita aziendale, siede perennemente ai bottoni principali situati all'occorrenza un formidabile entità senziente in forma di chat automatica. Tale sistema sveste l'angoscia ed abbatte la titubanza; con una digitazione confidenziale il <strong>copilota AI</strong> vi risolverà inghippi pratici in tempo istantaneo disincastrando dubbi burocratici annidatisi in seno all'elaborare procedure e risucchiandovi verso l'autonomia slegandovi e svincolandovi dalle pedanti attese del parere altrui degli amministratori che giacevano sepolti nelle coltri sterminate di call interminabili da sbrigare altrove.</li>
+                        
+                        <li style="margin-bottom:20px;"><strong>Telemetria Attiva e L'Occhio del Context Banner (Vetrinetta Viola):</strong> Allorquando entrate impauriti tra i meandri della bacheca Aiuto AI, essa brillerà ed incornicerà con un accogliente strato violaceo la cima. Che diavoleria? Trattasi inequivocabilmente dello stemma e bandiera di contesto (<em>Context Banner</em>). Questo cartello stradale avverte, e grida dritto a voi stessi, la reale concezione intellettiva del programma in ordine a quale preciso frammento dello schermo l'occhio vigile cloud ha fotografato (sappiate che sa bene di incollarvi al muro della "Home" oppure vi ha sgamato immersi nei meandri tristi spaventosi paurosi ed oscuri d'una ripartizione Cassa finita drammaticamente male), affinchè possiate rendervene consci preliminarmente in totale chiarezza visualistica d'estrazione telemetrica avanzatissima.</li>
+                        
+                        <li style="margin-bottom:20px;"><strong>Imbuto Rapido e Pulsanti di Prompt Prefabbricati in Blocchi:</strong> Volete scansare la tremenda imbarazzante seccatura preistorica antica di prelevare singole lettere con fatica insopportabile? Ebbene i colossi dell'algoritmica vi sorreggono donandovi schegge, premesse fatte a pillole. Toccare soavemente una tavoletta come <strong>"Segnala Problema..."</strong> o perfino agguantare la piana <em>"Come faccio a..."</em> sgancerà ed innesterà, senza errori sintattici in prima persona autografa, il capolinea esatto del quesito, sfoltendo immensamente il peso del digitare affinchè possiate semplicemente innestare ed allegarci a corona in coda il male reale sottomesso e dar così in pasto formidabile preghiera e scorrere felicemente verso l'assistenza definitiva automatica cloud con giubilo strabiliante generale per tutti.</li>
+                        
+                        <li style="margin-bottom:20px;"><strong>Il Battito Relazionale Delle Notifiche Inevitabili:</strong> La società intera ruota come una ruota d'altamira sui cardini invisibili comunicativi scaturiti. Se, e sol o e solamente se, una richiesta insabbata viene estratta all'approvazione dorata o al compimento terminale luttuoso e completato, subentra la meccanica invadente del segnale <strong>Notitica Push Oculare</strong>. Spianerà un cerchio paonazzo a colpire l'apice menù per allertare prepotentemente che altrove si spende ed altrove si agisce. Coloro in rubrica coinvolti sentiranno giungere sui dispositivi quest'eco tremolante incisa per avvertirli tacitamente della rivoluzione d'intenti e compimenti effettuati e ratificati.</li>
+                        
+                        <li style="margin-bottom:20px;"><strong>La Mietitura Temporale E Svuotamento Costante Del Passato Obsoleto (Pulizia Auto):</strong> Concepire un elenco disorganizzato cronologicamente in espansiva mole equivale matematicamente d'impantanare lo smartphone nella sabbia ed innescarne fusione terminale d'ingombro memoria limitatissima cache locale fissa asfissiante. Con prodezza formale agisce l'eliminazione sommaria dei segnali pervenuti: non appena il quadrante temporale globale si rovescia su nuovi orari odierni esecutivi stancanti, l'algoritmo strangola implacabilmente <em>tabelle notifiche ed esaurite obsolete</em> antecedenti e scadenziate al ieri sopprimendole nell'irrimediabilità di sistema informatico mantenendo per l'eternità pura limpida reattiva la bacheca utente sgombrandola in letizia per l'arrivo trionfale della mole spaccaschiena fresca attesa al presente ed alle fatiche dei tempi impellenti futuri ravvicinati.</li>
+                    </ul>
+                </div>
+
+                <div id="chap6" class="guide-chap" style="display:none;">
+                    <h2 style="color:var(--primary); margin-bottom:20px; border-bottom:3px solid var(--border); padding-bottom:10px;">Capitolo 6 - Glossario Tecnico (40 Termini Esatti)</h2>
+                    <ul style="list-style-type:none; padding:0; margin:0; line-height:1.7;" id="glossaryList">
+                        <li style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #e2e8f0;"><strong>1. Admin:</strong> Profilo massimo, personificato in Giuseppe, dotato del potere assoluto di approvare, allocare spese, ricaricare portafogli ed emanare sanzioni assolute cancellando task altrui permanentemente senza giustificazione avversa palese apparente verun possibile appellazione subordinata impiegatizia fallace.</li>
+                        <li style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #e2e8f0;"><strong>2. Agenda:</strong> Modulo interfaccia con vista dinamica (Mese/Settimana/Giorno) che sviscera l'intreccio degli appuntamenti scaglionati temporalmente.</li>
+                        <li style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #e2e8f0;"><strong>3. Aiuto AI:</strong> Sofisticato interlocutore in cloud concepito per dirimere i dubbi tecnici legati all'impiego delle varie suite della web-app aziendale.</li>
+                        <li style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #e2e8f0;"><strong>4. Allegato:</strong> Qualunque elemento aggiuntivo (spesso fotografie di scontrini carburante o audio descrittivo) incollato di sana pianta per sopperire alla rigidità limitata spersonalizzante ed angusta della tastierina piatta di uno smartphone logoro a fine turnazione serale impiegatizia muraria.</li>
+                        <li style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #e2e8f0;"><strong>5. Allocazione (Wizard Allocation):</strong> Il procedimento meticoloso tramite il quale l'amministrazione, armata della sua modale a scomparsa, ripartisce al centesimo le fatture inglobate suddividendole su varie ed eventuali Famiglie sventurate o accollate ad Organizzazioni pagatarie responsabili.</li>
+                        <li style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #e2e8f0;"><strong>6. Approvatore / Supervisore:</strong> Entità manageriale astratta cui spettano decisioni insindacabili e veti imperituri miranti nell'incastrare le mansioni in base a giorni ideati fissando scadenze che per forza andranno pervase dal peso della realizzazione coatta ed immediata ad opera dei subordinati interconnessi dipendenti salariati.</li>
+                        <li style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #e2e8f0;"><strong>7. Assegnazione:</strong> Storicizzazione che avviene al medesimo istante esatto in cui un supervisore lega irrimediabilmente l'identificativo tecnico muratore (es. Operatore Paolo) al fine drammatico di eseguire la magagna ed il guasto avvistato tra le carte digitali.</li>
+                        <li style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #e2e8f0;"><strong>8. Badge Status:</strong> Piccolo cartiglio visivo dai pigmenti accesi inalberante la stringatissima stringa nominale rivelatrice dello scacchiere gerarchico stato effettivo. Da "ASSEGNATO" verdeacqua fino ad "DA ALLOCARE" color blu.</li>
+                        <li style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #e2e8f0;"><strong>9. Cassa:</strong> Denaro frusciante o liquidità in girotondo e balio circolatorio contabilizzato accuratamente affinché colmi voragini contabili generate dal prelevamento improvviso ed inevitabile al cospetto del cassiere d'una comune mescita generi alimentari hardware edilizio commerciale standard reperibile.</li>
+                        <li style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #e2e8f0;"><strong>10. Completato:</strong> Fine ultimo di una commessa, lo stato solido e terminale indiscusso impresso indelebilmente per sancire riposo che sparisce conseguentemente e placidamente dalla frenesia dall'area lavorativa odierna ed infuocata.</li>
+                        <li style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #e2e8f0;"><strong>11. Consuntivazione / Consuntivo:</strong> Riepilogo letterale del lavoro compiuto che si traccia sovente nella chiusura pomeridiana esatta e che l'operaio o il direttore redige scrupolosamente pur non dimenticandosene al termine effettivo della logorante fatica.</li>
+                        <li style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #e2e8f0;"><strong>12. Context Banner:</strong> Componente che inoltra magicamente e telemettricamente parlando la tua URL (se ti aggiravi silente in Cassa o in Home solitaria) all'Intelligenza Virtuale artificialmente per instradarli la genesi profonda ed intrinseca oscurata e palese dettante lo sgomento originario dubbioso ed angosciante impantanante dell'ignaro tecnico bloccato e stordito perso ramingo.</li>
+                        <li style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #e2e8f0;"><strong>13. Dettaglio Task:</strong> Modale gigante, finestra espansa in sovrimpressione visibilissima per sgranare occhi, la cui intenzione primaria, scoccata premento lesta un'inerme e pacifica innocua schietta cardina nel mucchio, svela ogni singolo aneddoto e commento sfuggito di nascosto ad occultamento visuale ridotto base e generato d'anteprima.</li>
+                        <li style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #e2e8f0;"><strong>14. Direttorio:</strong> Rubrica fondante, per eccellenza divisa trinitariamente a spicchi su menù espandibile e rimpiccolibile ad intarsio, stipata di anagrafica aziendale estesa in organismi fisici corporativi (Organizzazioni), di parentele intitolate (Famiglie), ed indirizzi catasti e geografici concreti tangibili e localizzabili in cartografie metropolitane ed asfaltate veraci con precisione estrema denominati (Luoghi).</li>
+                        <li style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #e2e8f0;"><strong>15. Famiglia:</strong> Entità che assorbirà in proporzione concordata il tonfo economico di una transazione, rappresentante genericamente la parte civile domestica coinvolta in un ammodernamento impiantistico locale ordinario o rilevantissimo ed urgente ampiamente documentabile allegando documentazione o file immagine jpeg veraci del misfatto al task intero con minuziosità eccelsa e pedante d'origine protettiva aziendale antiproteste postume salariali rimborsuali ed oneri correlati ad esso connessi saldamente nel sistema burocratico informatico contabile statale inequivocabile palese chiaro incontrovertibile matematicamente indiscutibile pignolo preciso e spietato in ultima istanza fatturante terminalemente il resoconto analitico redatto con crisma ed approvato ampiamente sanzionato e corroborato prima in fase stesurale redazionale ed impaginazione sommaria dall'apposito addetto appaltatore o supervisore plenipotenziario delegato al portafoglio in carica tempore intero corrente di mansione dirigenziale assoluta imperante nonchè incontestabile dalla giuria pervenuta ed in organo apposito giudicante gli strafalcioni operai in erba ampiamente previsti a statuto del regolamento d'esercizio base primario della compagnia.</li>
+                        <li style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #e2e8f0;"><strong>16. Feed:</strong> Il muro sociale, la home e colonna portante degli scorrimenti polliciali stanchi che racchiude, filtra, ammucchia, spintona, schernisce o sublima verso il paradiso della prima preminente visuale urgente l'insieme sconfinato di tutta quella mercanzia che prende il nome grezzo spaventevole e temutissimo d'intervento murale di manutenzione aziendale in sospeso e pendente da attuare spietatamente presto per il bene comune societario preposto al guadagno ed alla ricchezza collettiva derivante intera globale comunitaria dell'intero ammasso aziendale che ruota felice come un sole ingranaggio mosso in sintonia suprema all'unisono armoniosa celeste magnifica perfetta impareggiabile esemplare virtuosa pulita instancabile fruttuosa operosa ed irrefrenabile macchina del progresso in movimento sfacciato continuo inesorabile rombante inestinguibile colossale instancabile e ruggente formidabile insaziabile inesauribile invincibile stratosferica apocalittica maestosa epica smisurata illimitata perentoria.</li>
+                        <li style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #e2e8f0;"><strong>17. Finanza:</strong> Pagina ad accesso gerarchicamente elevato preposta a rimuginare le sfortune economiche, spargere sanzioni in allocation wizard o ammirare portafogli floridi.</li>
+                        <li style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #e2e8f0;"><strong>18. Focus View:</strong> Filtraggio estremo. Si pigia su un giorno nel calendario e puf!, gli eventi laterali sbiadiscono ed esplodono le sole commissioni destinate unicamente e precisamente al calar in tale momento solare.</li>
+                        <li style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #e2e8f0;"><strong>19. Fondo / Ricarica Fondo:</strong> Innesco d'emergenza o prassi mensile affibbiata dall'imperante Giuseppe volta al rimpinzare di cartamoneta ed euro virtuali il desolante calar misero della borsa valuta (Walllet) del piangente muratore lasciato sprovvisto in girotona urbana stracolma di spese impellenti inaccettabili in debito ed insolvenze private umilianti e drammatiche disagevoli sconfortanti mortificanti indicibili inesprimibili dolorali imbarazzantissime penose infedeli disastrose catastrofiche ed avvilenti per i corrieri dell'ardua causa di lavoro in subappalto estenuante logorante ed asfissiante soffocante alienante martirizzante straziante triturante sfibrante mortale deprimente ed assassina snervante disumanante massacrante annichilente ed umiliantissima dolorosissima faticosissima spossante e logorante.</li>
+                        <li style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #e2e8f0;"><strong>20. FullCalendar:</strong> Libreria integrata che fornisce tutta l'estetica, la dinamica e le caselline perfette in cui gli appuntamenti s'annidano meravigliosamente per il sollazzo dello sguardo del programmatore intento ad architettare un software usabile pregevole e magistralmente congegnato da mani sagaci ed esperte impareggiabili.</li>
+                        <li style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #e2e8f0;"><strong>21. Giornata Manovale:</strong> Denominazione di un inserto ed entità che registra il lavoro orario manuale d'assistenza fornito dal manovale non titolare della mansione appaltante ammainata, d'un esterno prestante opera fisica di stancamento e trasporto carichi (es: Dino o Antimo).</li>
+                        <li style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #e2e8f0;"><strong>22. In-Progress:</strong> Il momento che intercorre tra l'accettazione ed il compimento. La fase del lavoro e dell'opera bruta vera è calcolata contabilmente qui ed archiviata fermamente sul timer virtuale server dell'edificio aziendale.</li>
+                        <li style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #e2e8f0;"><strong>23. Log Activity:</strong> Registro inespugnabile, invisibile alla plebe ma inestimabile per il generale. Salva le orme, i click fallaci ed intenzionali, i misfatti ed incastra il truffatore che cancella l'illecito di aver soppresso un commento in chat descrittiva furente in piena polemica notturna post sbronza serale molesta al bar dell'operaio stramazzante.</li>
+                        <li style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #e2e8f0;"><strong>24. Luogo / Location Id:</strong> Tag direzionale insostituibile ai confini d'un perimetro catastale o civico su strada. Destinazione fissa d'approdo e partenza dell'azione pratica.</li>
+                        <li style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #e2e8f0;"><strong>25. Modal (Modal-fs):</strong> Finestra gigantesca imperiosa esigente ed oscurante la vista sottostante in trasparenza lattea. Non è pagina nuova, vive nella pagina d'ignoro totale sopprimendo visivamente la home per imporvi interazione d'intento svelto ed asciutto pretenziosamente inoppugnabile insindacabile autoritatio dispotico ed assolutistico perentorio irremovibile totalitario padronale prevaricante intollerante estremista oscurantista antidemocratico ed incostituzionale infimo ma glorioso utilitario scopo programmatorio.</li>
+                        <li style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #e2e8f0;"><strong>26. Notifica Push Elementare:</strong> Campanellino d'avviso per il tap in alto a destra svelante lo storicissimo ed impertinente messaggio su incarico appena sfornato e piovuto sulle vertebre dall'alto comando della struttura ammiraglia per scardinare il pianificato relax serotino impigrente divaniero feriale.</li>
+                        <li style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #e2e8f0;"><strong>27. Nuovo Task:</strong> Evento informatico sorgente, il concepimento testuale nudo di programmazione che vive nello stato limbo incerto e pervaso dal pallore timido "in attesa approvazione padronale".</li>
+                        <li style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #e2e8f0;"><strong>28. Operativo (Ruolo Technician):</strong> Profilo scarno, spossato e proiettato in riga d'attacco frontale. Vede la guerra al disastro manutentorio, i suoi soldini striminziti residui rimasti di cassa ed i suoi specifici obbiettivi puntati ed annidatigli attorno non sbirciando portafogli od incombendogli preoccupazioni dirigenziali altocostanti di macro bilanciamenti esterici ed extranazionali ampi globali sfavillanti impensabili inenarrabili surreali mistici esoterici epici magici.</li>
+                        <li style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #e2e8f0;"><strong>29. Organizzazione:</strong> Partner d'ufficio o azienda strutturata verso la quale deviare spese, accollare gravami fiscali di fatturazione al fine di decurtare ed alleggerire l'impalcatura dei costi societari generali scaricandoli verso i rami secchi partner o le succursali compiacenti esecutive.</li>
+                        <li style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #e2e8f0;"><strong>30. Proposta Lavoro (Pending_Approval):</strong> Un parto senza benedizione papale e pontificia; un task che spera in preghiera d'esser tramutato dalla matita di Teresa o Giuseppe in atto cantierabile fatturato e munito d'agognato budget orario in rimborsi sostanzioso lauto goloso ghiotto ed opulento scialacquato esagerato principesco regio trionfante generosissimo caritatevole munifico prodigo smisurato sconfinato colossale sterminato pantagruelico colossale.</li>
+                        <li style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #e2e8f0;"><strong>31. PWA (Web Mobile Experience):</strong> Tecnologia sbalorditiva, permette alla paginetta browser banale stantia e ammuffita stitica insignificante d'insediarsi in veste imperiale sull'iconografia madre del cellulare sfoggiandosi spacciandosi travestendosi e comportandosi come un'App vera comprata scaricata pagata in rubini d'oro dall'app-store nativo pur vivendo povera ed umile nell'anonimato html sorgentizio libero.</li>
+                        <li style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #e2e8f0;"><strong>32. Quick Actions:</strong> Pulsanti scattanti posti sul ventre molle d'un task per completarlo o per lanciare moduli spesa scontrini istantaneamente evitando deviazioni dolorose menù complicatissimi stratificati.</li>
+                        <li style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #e2e8f0;"><strong>33. Report:</strong> Visualizzazione per calcolatrici mentali; condensa ore fatte, visite condotte impavide in case diroccate ed entità finanziarie evaporate espletando conti per stangate fiscali, dividendi onesti e calcoli provvisori e conclusivi per la sommità della catena alimentare aziendale imperiale dispotica regale monarchica trionfatrice invitta eterna intoccabile sacra ed idolatrata.</li>
+                        <li style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #e2e8f0;"><strong>34. Rich Description:</strong> Sezione discorsiva opulenta; rifugio testuale vastissimo, talamo dei messaggi vocali e degli allegati jpg pdf caricati, trincea difensiva contro le miscomprensioni telegrafiche derivanti da soli titoli asciutti aridi.</li>
+                        <li style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #e2e8f0;"><strong>35. Rimborso / Adjustment:</strong> Soffio vitale riabilitativo del contante in canna. Avvenimento miracoloso e mistico dettato in manovra estrema da Giuseppe (Admin) che allunga un bonifico provvidenziale all'improviso ristabilendo la cappa asfissiante negativa dello zerocento portafoglio Wallet personale.</li>
+                        <li style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #e2e8f0;"><strong>36. Scontrino Fotografato Obbligatorio:</strong> Legge incontestabile e tagliente come l'acciaio: niente carta fiscale scannerizzata od immagine limpida e chiara del costo vivo pagato, e lo zero cosmico rimarrà fermamente imposto in spesa ed insolvenza incombente perennemente irrimediabilmente punitivamente sanzionatamente penosamente crudelmente per sempre fino in saecula saeculorum ed alla fine del tempo cosmico.</li>
+                        <li style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #e2e8f0;"><strong>37. Sessione Lavorativa / External Worker Cost:</strong> Blocco temporale computato ed approvato a saldo orario per le forze esterne impiegate come somari da lavoro sbrigativo per rinforzare muscolarmente il perimetro indebolito della truppa primaria (tipo inserire prestazioni conto orario di tale Antimo).</li>
+                        <li style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #e2e8f0;"><strong>38. Supervisore / Approvatore:</strong> Titolarità saggia e pacifica in grado di spianare la via crucis approvando costi folli impiegati od indirizzando tempistiche altrimenti irrazionali incastrando a puzzle gli umani nel calendario settimanale imperativo dettandone le leggi supreme indiscutibili ed obbedendo al solo dogma divino sommo padronale incartato.</li>
+                        <li style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #e2e8f0;"><strong>39. Urgenza (Badge Alert):</strong> Imprimatur infausto rovente disperato dolorosissimo e bruciante appiccato in testa al titolo. Scaraventa col potere della gravità cosmica e prepotenza sfacciata e barbara la scheda del compito in cima snobbando, surclassando, ignorando e calpestando senza alcun indugio, i programmi modesti e le mattinate già preordinate per la gioia altrui sconquassandone le basi di speranza di pace terrena e sollevando l'ansia lavorativa febbrile parossistica infartuante tremenda diabolica indiavolata assatanata frenetica demoniaca.</li>
+                        <li style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #e2e8f0;"><strong>40. Wallet / Cash Movement:</strong> Cruscottino incastrato fiero ed impassibile testardo impietoso spietato gelido ineffabile sulla testata nav, mostra fiero ed inoppugnabile quanto sangue o linfa economica residua giace nelle mutande del tecnico prima che debba prostrarsi in ginocchio sanguinante umiliato sottomesso per elemosinare dal calcolatore principe una ricarica d'ausilio per un acquisto emergenziale stucchevole al fornitore edicolante esoso scorbutico bottegaio del quartiere.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <script>
+                window.openChapter = function(n) {
+                    document.getElementById('guideButtons').style.display = 'none';
+                    document.getElementById('guideSearchInput').style.display = 'none';
+                    document.getElementById('guideSearchResults').style.display = 'none';
+                    document.getElementById('guideContent').style.display = 'block';
+                    for(let i=1; i<=6; i++) {
+                        let chp = document.getElementById('chap' + i);
+                        if(chp) chp.style.display = (i === n) ? 'block' : 'none';
+                    }
+                };
+
+                window.closeChapter = function() {
+                    document.getElementById('guideContent').style.display = 'none';
+                    document.getElementById('guideButtons').style.display = 'block';
+                    document.getElementById('guideSearchInput').style.display = 'block';
+                    document.getElementById('guideSearchInput').value = '';
+                    window.searchGuide();
+                };
+
+                window.searchGuide = function() {
+                    const q = document.getElementById('guideSearchInput').value.toLowerCase();
+                    const resultsBox = document.getElementById('guideSearchResults');
+                    const btnMenu = document.getElementById('guideButtons');
+                    
+                    if(q.trim() === '') {
+                        resultsBox.style.display = 'none';
+                        btnMenu.style.display = 'block';
+                        return;
+                    }
+
+                    resultsBox.style.display = 'block';
+                    btnMenu.style.display = 'none';
+
+                    // Collect all text
+                    let allResults = '';
+                    for(let i=1; i<=6; i++) {
+                        const chap = document.getElementById('chap' + i);
+                        if(!chap) continue;
+                        const h2 = chap.querySelector('h2');
+                        const chapTitle = h2 ? h2.innerText : 'Sezione ' + i;
+                        
+                        let paragraphs = chap.querySelectorAll('p, li');
+                        paragraphs.forEach(p => {
+                            const text = p.innerText;
+                            if(text.toLowerCase().includes(q)) {
+                                const highlighted = text.replace(new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, "\\<div id="guideModal" class="modal-fs">
         <div class="modal-header">
             <h2>⚙️ Impostazioni e Guida</h2>
             <button class="btn-close-modal" onclick="document.getElementById('guideModal').classList.remove('open')">&times;</button>
@@ -369,6 +562,23 @@
         </div>
     </div>
 
+    <!-- Hidden Camera Input for PWA -->"), 'gi'), match => '<strong style="background:var(--warning); color:white; padding:0 3px; border-radius:3px;">' + match + '</strong>');
+                                allResults += '<div style="margin-bottom:15px; padding:15px; border-left:4px solid var(--primary); background:white; font-size:0.95rem; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.1); line-height:1.6;"><strong>' + chapTitle + '</strong><br><br>' + highlighted + '</div>';
+                            }
+                        });
+                    }
+
+                    if(allResults === '') {
+                        resultsBox.innerHTML = '<div class="text-muted" style="text-align:center; padding:20px; font-weight:bold;">Nessun risultato compatibile trovato in questa app. Riprova con altri termini.</div>';
+                    } else {
+                        resultsBox.innerHTML = allResults;
+                    }
+                };
+            </script>
+
+        </div>
+    </div>
+
     <!-- Hidden Camera Input for PWA -->
     <input type="file" id="nativeCameraInput" accept="image/*" capture="environment" style="display:none;">
 
@@ -380,6 +590,6 @@
         });
       }
     </script>
-    <script type="module" src="app.js?v=5.2"></script>
+    <script type="module" src="app.js?v=5.3"></script>
 </body>
 </html>
