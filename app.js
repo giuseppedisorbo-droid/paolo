@@ -79,7 +79,7 @@ window.markNotifRead = async(id)=>updateDoc(doc(db,"notifications",id),{read:tru
 
 function boot() {
     const dName = currentUser.fullName || currentUser.name || currentUser.id;
-    document.getElementById('headerUserInfo').textContent = `${dName} | v5.9`;
+    document.getElementById('headerUserInfo').textContent = `${dName} | v6.0`;
     const r = currentUser.roles||[];
     let nav = '';
     const isSuper = r.includes('admin') || r.includes('owner') || r.includes('management_control') || r.includes('admin_support') || r.includes('domain_approver');
@@ -154,7 +154,7 @@ function renderHome() {
 
     if(isAdmin || isSupervisor || isDomainApprover) {
         liveRequests.filter(r=> (r.status==='new'||r.status==='approved') && canSee(r)).forEach(r => feed.innerHTML += `<div class="card"><div class="card-header"><span class="status-badge status-${r.status}">${r.status}</span> <span style="font-size:0.8rem;color:var(--text-muted)">📍 ${appCache.locations[r.locationId]?.name||'N/D'}</span></div><div class="card-title">${r.title}</div><p style="font-size:0.9rem;color:#666">${r.description}</p><div class="entity-tags">${getEntTags(r.familyIds,r.organizationIds)}</div><button class="btn btn-primary mt-2" onclick="window.openApproveWizard('${r.id}')">Assegna e Pianifica</button></div>`);
-        liveTasks.filter(t=>t.status==='pending_approval' && canSee(t)).forEach(t => feed.innerHTML += `<div class="card" style="border-left: 5px solid var(--warning)"><div class="card-header"><span class="status-badge" style="background:var(--warning); color:white;">Proposto da Paolo</span></div><div class="card-title">${t.title}</div><div class="entity-tags">${getEntTags(t.familyIds,t.organizationIds)}</div><button class="btn btn-success mt-2" onclick="window.execAction('APPROVE_PROPOSED','${t.id}')">👍 Approva (Inizia Oggi)</button></div>`);
+        liveTasks.filter(t=>t.status==='pending_approval' && canSee(t)).forEach(t => feed.innerHTML += `<div class="card" style="border-left: 5px solid var(--warning)"><div class="card-header"><span class="status-badge" style="background:var(--warning); color:white;">Proposto da ${t.requestedBy ? (appCache.people[t.requestedBy]?.shortName || appCache.people[t.requestedBy]?.name || t.requestedBy) : 'Tecnico'}</span></div><div class="card-title">${t.title}</div><div class="entity-tags">${getEntTags(t.familyIds,t.organizationIds)}</div><button class="btn btn-success mt-2" onclick="window.execAction('APPROVE_PROPOSED','${t.id}')">👍 Approva (Inizia Oggi)</button></div>`);
         liveTasks.filter(t=>t.status!=='completed' && t.status!=='pending_approval' && canSee(t)).forEach(t => feed.innerHTML += `<div class="card" onclick="window.openTaskDetail('${t.id}')"><div class="card-header"><span class="status-badge status-${t.status}">${t.status}</span> <div style="text-align:right"><div style="font-weight:bold;color:var(--primary);font-size:0.8rem">${t.scheduledStart?new Date(t.scheduledStart).toLocaleDateString():''}</div><span style="font-size:0.75rem;color:var(--text-muted)">📍 ${appCache.locations[t.locationId]?.name}</span></div></div><div class="card-title">${t.title}</div><div class="entity-tags">${getEntTags(t.familyIds,t.organizationIds)}</div></div>`);
     } else if(isWorker) {
         const todayStr = new Date().toISOString().split('T')[0];
@@ -632,6 +632,9 @@ window.openNewRequestWizard = (taskIdToEdit = null) => {
             initialBtnText = j.length > 35 ? j.substring(0,32) + "..." : j;
         }
     }
+    
+    // Costruisci le opzioni dei tecnici
+    const wOpts = Object.values(appCache.people).filter(p=>p.roles.includes('technician')).map(p=>`<option value="${p.id}" ${t && t.assignedTo===p.id?'selected':(!t && currentUser.id===p.id?'selected':(p.id==='worker_paolo'?'selected':''))}>${p.fullName||p.name}</option>`).join('');
 
     b.innerHTML = `<form id="wizF" data-edit-id="${taskIdToEdit||''}">
         <input type="text" id="rt" placeholder="Titolo" value="${t ? t.title : ''}" required>
@@ -655,6 +658,12 @@ window.openNewRequestWizard = (taskIdToEdit = null) => {
         </div>
         
         <input type="hidden" id="rl" value="${t && t.locationId ? t.locationId : ''}">
+        
+        <label>Tecnico Incaricato</label>
+        <select id="rAssignee" style="margin-bottom:15px; width:100%;">
+            ${wOpts}
+            <option value="none">-- Da decidere --</option>
+        </select>
         
         <label>Proprietari/Beneficiari (Multi-selezione)</label>
         <div style="border:1px solid #ccc; padding:10px; border-radius:8px; margin-bottom:15px; background:#fafafa;">
@@ -695,7 +704,7 @@ window.openNewRequestWizard = (taskIdToEdit = null) => {
             description: window.tempRichDescription,
             attachments: window.tempAttachments,
             organizationIds: orgIds, familyIds: famIds,
-            assignedTo: 'worker_paolo'
+            assignedTo: b.querySelector('#rAssignee').value === 'none' ? null : b.querySelector('#rAssignee').value
         };
         
         const locId = b.querySelector('#rl').value;
