@@ -79,7 +79,7 @@ window.markNotifRead = async(id)=>updateDoc(doc(db,"notifications",id),{read:tru
 
 function boot() {
     const dName = currentUser.fullName || currentUser.name || currentUser.id;
-    document.getElementById('headerUserInfo').textContent = `${dName} | v5.8`;
+    document.getElementById('headerUserInfo').textContent = `${dName} | v5.9`;
     const r = currentUser.roles||[];
     let nav = '';
     const isSuper = r.includes('admin') || r.includes('owner') || r.includes('management_control') || r.includes('admin_support') || r.includes('domain_approver');
@@ -752,6 +752,21 @@ window.confirmMultiSelect = () => {
     btn.style.display = 'flex';
 };
 
+window.confirmMultiSelectExp = () => {
+    const checks = Array.from(document.querySelectorAll('#multiSelectContainerExp .we-alloc:checked'));
+    const btn = document.getElementById('btnMultiSelectExp');
+    const container = document.getElementById('multiSelectContainerExp');
+    if(checks.length === 0) {
+        btn.innerHTML = "Seleziona Beneficiari... <span>▼</span>";
+    } else {
+        const names = checks.map(c => c.textContent.trim() || c.parentElement.textContent.trim()).join(', ');
+        const fmt = names.length > 35 ? names.substring(0,32) + "..." : names;
+        btn.innerHTML = fmt + " <span>▼</span>";
+    }
+    container.style.display = 'none';
+    btn.style.display = 'flex';
+};
+
 window.openApproveWizard = (reqId) => {
     const r = liveRequests.find(x=>x.id===reqId);
     const b = document.getElementById('wizardBody'); document.getElementById('wizardTitle').textContent="Assegna";
@@ -782,9 +797,15 @@ window.openExpenseWizard = (taskId=null) => {
         <input type="text" id="wed" placeholder="Es. Viti e tasselli" required>
         <label>Seleziona Task (Applica automaticamente i centri di costo)</label>
         <select id="wet"><option value="">Nessun Task</option>${opts}</select>
-        <div id="weAllocDiv" style="margin-top:10px; padding:10px; border:1px solid #ddd; background:#fafafa;">
-            <label style="font-size:0.85rem; color:var(--danger)">Seleziona esplicitamente almeno un centro di costo se non hai scelto un Task:</label>
-            <div style="max-height:100px;overflow-y:auto;">${fams}${orgs}</div>
+        <div id="weAllocDiv" style="margin-top:10px; padding:10px; border:1px solid #ddd; background:#fafafa; border-radius:8px;">
+            <label style="font-size:0.85rem; color:var(--danger); margin-bottom:8px; display:block;">Seleziona esplicitamente almeno un centro di costo se non hai scelto un Task:</label>
+            <button type="button" id="btnMultiSelectExp" class="btn btn-outline" style="width:100%; text-align:left; display:flex; justify-content:space-between; align-items:center; background:#fff; border:1px solid #ccc; color:#333; padding:10px;" onclick="document.getElementById('multiSelectContainerExp').style.display='block'; this.style.display='none';">Seleziona Beneficiari... <span>▼</span></button>
+            <div id="multiSelectContainerExp" style="display:none; background:#fff; border:1px solid #ccc; border-radius:8px; padding:10px; margin-top:8px;">
+                <div style="max-height:180px; overflow-y:auto; margin-bottom:10px; display:flex; flex-direction:column; gap:8px;">
+                    ${fams}${orgs}
+                </div>
+                <button type="button" class="btn btn-primary" style="width:100%; padding:8px;" onclick="window.confirmMultiSelectExp()">Conferma Selezione</button>
+            </div>
         </div>
         <label class="mt-2">Giustificativo</label>
         <input type="file" id="weFile" accept="image/*" capture="environment" style="margin-bottom:10px; width:100%;">
