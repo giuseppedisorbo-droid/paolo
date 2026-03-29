@@ -79,7 +79,7 @@ window.markNotifRead = async(id)=>updateDoc(doc(db,"notifications",id),{read:tru
 
 function boot() {
     const dName = currentUser.fullName || currentUser.name || currentUser.id;
-    document.getElementById('headerUserInfo').textContent = `${dName} | v5.0`;
+    document.getElementById('headerUserInfo').textContent = `${dName} | v5.1`;
     const r = currentUser.roles||[];
     let nav = '';
     const isSuper = r.includes('admin') || r.includes('owner') || r.includes('management_control') || r.includes('admin_support') || r.includes('domain_approver');
@@ -372,7 +372,7 @@ function renderFinance() {
     }
     if(isSuper) {
         let h = `<h3>Fondi Operatori</h3>`;
-        Object.values(appCache.people).filter(p=>p.roles.includes('technician') && p.id!=='worker_luca').forEach(w => {
+        Object.values(appCache.people).filter(p=>p.roles.includes('technician') && p.id!=='luca').forEach(w => {
             const cList = liveCash.filter(c=>c.givenTo===w.id).sort((a,b)=>b.createdAt-a.createdAt);
             const bal = cList.length > 0 ? cList[0].balanceAfter : 0;
             h += `<div class="card flex-between" style="align-items:center;"><div><strong>${w.fullName}</strong><div style="font-size:1.2rem; color:${bal<0?'var(--danger)':'var(--success)'}; font-weight:bold;">€ ${bal.toFixed(2)}</div></div> <button class="btn btn-info" style="width:auto; padding:8px 15px;" onclick="window.topUpWallet('${w.id}')">Ricarica Fondo</button></div>`;
@@ -419,9 +419,46 @@ function renderFinance() {
     }
 }
 
+window.toggleDirSection = (sec) => {
+    const el = document.getElementById('dir_sec_' + sec);
+    if(el.style.display === 'none') el.style.display = 'block';
+    else el.style.display = 'none';
+};
+
+window.addDirectoryItem = async (coll) => {
+    const name = prompt("Inserisci il nome per il nuovo elemento:");
+    if(!name || !name.trim()) return;
+    try {
+        const docRef = await addDoc(collection(db, coll), { name: name.trim() });
+        appCache[coll][docRef.id] = { name: name.trim() };
+        renderDirectory();
+    } catch(e) {
+        alert("Errore salvataggio: " + e.message);
+    }
+};
+
 function renderDirectory() {
     const d = document.getElementById('directoryList'); d.innerHTML='';
-    ['organizations','families','locations'].forEach(k => Object.values(appCache[k]).forEach(o => d.innerHTML += `<div class="card mb-2 flex-between"><strong>${o.name}</strong><span class="entity-tag">${k}</span></div>`));
+    const sections = [
+        { id: 'organizations', title: 'Organizzazioni' },
+        { id: 'families', title: 'Famiglie' },
+        { id: 'locations', title: 'Luoghi' }
+    ];
+    let html = '';
+    sections.forEach(s => {
+        const items = Object.values(appCache[s.id]).sort((a,b)=>a.name.localeCompare(b.name));
+        html += `<div class="card mb-3" style="padding:0; overflow:hidden;">
+            <div class="card-header" style="margin:0; padding:15px; background:var(--surface); cursor:pointer; border-bottom:1px solid var(--border);" onclick="window.toggleDirSection('${s.id}')">
+                <h3 style="margin:0; font-size:1.1rem; color:var(--primary);">${s.title} (${items.length}) <span>▼</span></h3>
+            </div>
+            <div id="dir_sec_${s.id}" style="display:none; padding:15px; background:var(--bg);">
+                <button class="btn btn-outline mb-3" onclick="window.addDirectoryItem('${s.id}')" style="padding:8px; font-size:0.9rem;">➕ Aggiungi ${s.title}</button>
+                ${items.map(o => `<div class="flex-between" style="padding:8px 0; border-bottom:1px dashed #ccc;"><strong style="font-size:0.95rem;">${o.name}</strong></div>`).join('')}
+                ${items.length===0 ? '<div class="text-muted">Nessun elemento.</div>' : ''}
+            </div>
+        </div>`;
+    });
+    d.innerHTML = html;
 }
 
 function renderReport() {
