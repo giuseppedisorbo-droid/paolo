@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, doc, getDoc, setDoc, updateDoc, serverTimestamp, query, where, onSnapshot, orderBy, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, doc, getDoc, setDoc, updateDoc, serverTimestamp, query, where, onSnapshot, orderBy, deleteDoc, deleteField } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 const firebaseConfig = {apiKey: "AIzaSyAh7dwRs1j7Vxib7OlB7mVRB-MNthAo5NA", authDomain: "peppe-ai-platform.firebaseapp.com", projectId: "peppe-ai-platform", storageBucket: "peppe-ai-platform.firebasestorage.app", messagingSenderId: "214462018633", appId: "1:214462018633:web:f224407eba3b107e27fb98", measurementId: "G-54RQ3L1EDW"};
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
@@ -624,20 +624,23 @@ window.openNewRequestWizard = (taskIdToEdit = null) => {
             title: b.querySelector('#rt').value,
             description: window.tempRichDescription,
             attachments: window.tempAttachments,
-            locationId: b.querySelector('#rl').value || null,
             organizationIds: orgIds, familyIds: famIds,
             assignedTo: 'worker_paolo'
         };
+        
+        const locId = b.querySelector('#rl').value;
+        if(locId) taskData.locationId = locId;
+
         if(sStart) taskData.scheduledStart = sStart;
         if(sEnd) taskData.scheduledEnd = sEnd;
-
-        // Ensure we remove fields if they are explicitly cleared during edit
-        if(!sStart) taskData.scheduledStart = null;
-        if(!sEnd) taskData.scheduledEnd = null;
 
         const editId = b.querySelector('#wizF').getAttribute('data-edit-id');
 
         if(editId) {
+            // Se in aggiornamento utente svuota le date
+            if(!sStart) taskData.scheduledStart = deleteField();
+            if(!sEnd) taskData.scheduledEnd = deleteField();
+            
             if(sStart) taskData.status = 'assigned';
             await updateDoc(doc(db,"tasks",editId), taskData);
             await logActivity('EDIT_TASK', 'task', editId);
