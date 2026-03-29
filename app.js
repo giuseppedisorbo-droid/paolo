@@ -79,7 +79,7 @@ window.markNotifRead = async(id)=>updateDoc(doc(db,"notifications",id),{read:tru
 
 function boot() {
     const dName = currentUser.fullName || currentUser.name || currentUser.id;
-    document.getElementById('headerUserInfo').textContent = `${dName} | v5.4`;
+    document.getElementById('headerUserInfo').textContent = `${dName} | v5.7`;
     const r = currentUser.roles||[];
     let nav = '';
     const isSuper = r.includes('admin') || r.includes('owner') || r.includes('management_control') || r.includes('admin_support') || r.includes('domain_approver');
@@ -362,7 +362,11 @@ function renderFinance() {
             h += `<div class="card" style="border-left: 4px solid var(--warning)">
                 <div class="flex-between"><strong>€ ${e.amount.toFixed(2)}</strong> <span class="status-badge" style="background:var(--warning); color:white;">⏳ IN ATTESA</span></div>
                 <div class="card-meta mt-2">${e.description}</div>
-                ${!e.receiptUrl ? `<div class="mt-2"><span class="status-badge" style="background:#fee2e2; color:#b91c1c;">⚠️ MANCA SCONTRINO</span></div><button class="btn btn-secondary mt-2" onclick="window.attachReceipt('${e.id}')">📷 Fai Foto Scontrino</button>` : `<div class="mt-2"><span class="status-badge" style="background:#d1fae5; color:#059669;">🧾 SCONTRINO OK</span></div>`}
+                                ${!e.receiptUrl ? `<div class="mt-2"><span class="status-badge" style="background:#fee2e2; color:#b91c1c;">⚠️ MANCA SCONTRINO</span></div><button class="btn btn-secondary mt-2" onclick="window.attachReceipt('${e.id}')">📷 Fai Foto Scontrino</button>` : `<div class="mt-2"><span class="status-badge" style="background:#d1fae5; color:#059669;">🧾 SCONTRINO OK</span></div>`}
+                <div class="mt-2" style="display:flex; gap:10px;">
+                    <button class="btn btn-outline" style="flex:1; padding:8px;" onclick="window.editExpense('${e.id}')">✏️ Modifica</button>
+                    <button class="btn btn-danger btn-outline" style="flex:1; padding:8px;" onclick="window.deleteExpense('${e.id}', true)">🗑️ Elimina</button>
+                </div>
             </div>`;
         });
 
@@ -404,8 +408,12 @@ function renderFinance() {
                     ${(e.status==='pending_approval') ? `<span class="status-badge" style="background:var(--warning); color:white;">⏳ DA APPROVARE</span>` : `<span class="status-badge status-new">DA ALLOCARE</span>`}
                 </div>
                 <div class="card-meta mt-2">Da: ${appCache.people[e.paidBy]?.shortName || e.paidBy} | ${e.description}</div>
-                ${!e.receiptUrl ? `<div class="mt-2"><span class="status-badge" style="background:#fee2e2; color:#b91c1c;">⚠️ NESSUN SCONTRINO</span></div>` : `<div class="mt-2"><span class="status-badge" style="background:#d1fae5; color:#059669;">🧾 SCONTRINO OK</span></div>`}
-                <button class="btn btn-primary mt-2" onclick="window.openAllocationWizard('${e.id}', 'expenses')">Verifica & Ripartisci Costo</button>
+                                ${!e.receiptUrl ? `<div class="mt-2"><span class="status-badge" style="background:#fee2e2; color:#b91c1c;">⚠️ NESSUN SCONTRINO</span></div>` : `<div class="mt-2"><span class="status-badge" style="background:#d1fae5; color:#059669;">🧾 SCONTRINO OK</span></div>`}
+                <div class="mt-2" style="display:flex; gap:10px;">
+                    <button class="btn btn-primary" style="flex:2;" onclick="window.openAllocationWizard('${e.id}', 'expenses')">Verifica & Ripartisci</button>
+                    <button class="btn btn-outline" style="flex:1; padding:8px;" onclick="window.editExpense('${e.id}')">✏️</button>
+                    <button class="btn btn-danger btn-outline" style="flex:1; padding:8px;" onclick="window.deleteExpense('${e.id}', false)">🗑️</button>
+                </div>
             </div>`;
         });
         h += `<h3 class="mt-4">Giornate Manovali da Allocare</h3>`;
@@ -534,7 +542,7 @@ function renderReport() {
 window.openTaskDetail = (taskId) => {
     const t = liveTasks.find(x=>x.id===taskId);
     const ev = liveExpenses.filter(e=>e.taskId===taskId);
-    const expHtml = ev.length===0?'Nessuna spesa.':ev.map(e=>`<div class="flex-between"><span>${e.description}</span><strong>€${e.amount.toFixed(2)}</strong></div><div style="font-size:0.75rem; color:var(--text-muted)">${(e.allocations||[]).map(a=>`${a.entityId}(${a.percentage.toFixed(0)}%)`).join(', ')}</div>`).join('');
+    const expHtml = ev.length===0?'Nessuna spesa.':ev.map(e=>`<div class="flex-between"><span>${e.description}</span><strong>€${e.amount.toFixed(2)}</strong></div><div style="font-size:0.75rem; color:var(--text-muted)">${(e.allocations||[]).map(a=>`${appCache.organizations[a.entityId]?.name || appCache.families[a.entityId]?.name || a.entityId}(${a.percentage.toFixed(0)}%)`).join(', ')}</div><div class="mt-1" style="text-align:right;"><button class="btn btn-outline" style="padding:4px 8px; font-size:0.75rem; margin-right:5px;" onclick="window.editExpense('${e.id}')">✏️ Modifica</button><button class="btn btn-danger btn-outline" style="padding:4px 8px; font-size:0.75rem;" onclick="window.deleteExpense('${e.id}', true)">🗑️ Elimina</button></div>`).join('');
     let supW = ``; if(t.supportWorkers && t.supportWorkers.length > 0) { supW = `<div class="mt-2"><span style="font-size:0.8rem; color:#666;">👨‍🔧 Supporto:</span> ${t.supportWorkers.map(w=>`<span class="entity-tag" style="background:#e0f2fe; color:#1e40af;">${appCache.external_workers[w]?.fullName||w}</span>`).join(' ')}</div>`; }
     
     let acts = '';
@@ -1077,3 +1085,55 @@ window.submitAiPrompt = async () => {
 };
 
 init();
+
+window.deleteExpense = async (id, isFromWorker = false) => {
+    if(!confirm("Sicuro di voler eliminare questa spesa?")) return;
+    try {
+        const e = liveExpenses.find(x => x.id === id);
+        if(!e) return;
+        if(isFromWorker && e.paidBy === currentUser.id && currentUser.roles.includes('technician')) {
+            const cList = liveCash.filter(c=>c.givenTo===currentUser.id).sort((a,b)=>b.createdAt-a.createdAt);
+            const currentBal = cList.length > 0 ? cList[0].balanceAfter : 0;
+            const balAfter = currentBal + e.amount;
+            await addDoc(collection(db,"cash_movements"),{
+                type: 'adjustment', givenBy: currentUser.id, givenTo: currentUser.id,
+                amount: e.amount, reason: "Storno eliminazione spesa: " + e.description,
+                balanceAfter: balAfter, createdAt: serverTimestamp()
+            });
+        }
+        await deleteDoc(doc(db,"expenses", id));
+        await logActivity('DELETE_EXPENSE','expense',id);
+        const tm = document.getElementById('taskDetailModal');
+        if(tm && tm.classList.contains('open') && e.taskId) window.openTaskDetail(e.taskId);
+        else { const b = document.getElementById('bottomNav').querySelector('.nav-item.active'); if(b && b.dataset.target === 'view-finance') renderFinance(); }
+    } catch(err) { alert("Errore: " + err.message); }
+};
+
+window.editExpense = async (id) => {
+    const e = liveExpenses.find(x => x.id === id);
+    if(!e) return;
+    const newDesc = prompt("Modifica causale della spesa:", e.description);
+    if(newDesc === null) return;
+    const newAmtStr = prompt(`Modifica l'importo (attuale: €${e.amount.toFixed(2)}):`, e.amount);
+    if(newAmtStr === null) return;
+    const newAmt = parseFloat(newAmtStr);
+    if(isNaN(newAmt) || newAmt <= 0) return alert("Importo non valido.");
+    try {
+        const diff = newAmt - e.amount;
+        await updateDoc(doc(db, "expenses", id), { description: newDesc.trim(), amount: newAmt });
+        if(diff !== 0 && e.paidBy === currentUser.id && currentUser.roles.includes('technician')) {
+            const cList = liveCash.filter(c=>c.givenTo===currentUser.id).sort((a,b)=>b.createdAt-a.createdAt);
+            const currentBal = cList.length > 0 ? cList[0].balanceAfter : 0;
+            const balAfter = currentBal - diff; 
+            await addDoc(collection(db,"cash_movements"),{
+                type: 'adjustment', givenBy: currentUser.id, givenTo: currentUser.id,
+                amount: Math.abs(diff), reason: `Conguaglio per modifica spesa (${newDesc.trim()})`,
+                balanceAfter: balAfter, createdAt: serverTimestamp()
+            });
+        }
+        await logActivity('EDIT_EXPENSE','expense',id);
+        const tm = document.getElementById('taskDetailModal');
+        if(tm && tm.classList.contains('open') && e.taskId) window.openTaskDetail(e.taskId);
+        else { const b = document.getElementById('bottomNav').querySelector('.nav-item.active'); if(b && b.dataset.target === 'view-finance') renderFinance(); }
+    } catch(err) { alert("Errore modifica: " + err.message); }
+};
