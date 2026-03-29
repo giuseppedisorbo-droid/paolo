@@ -79,7 +79,7 @@ window.markNotifRead = async(id)=>updateDoc(doc(db,"notifications",id),{read:tru
 
 function boot() {
     const dName = currentUser.fullName || currentUser.name || currentUser.id;
-    document.getElementById('headerUserInfo').textContent = `${dName} | v4.5`;
+    document.getElementById('headerUserInfo').textContent = `${dName} | v4.6`;
     const r = currentUser.roles||[];
     let nav = '';
     const isSuper = r.includes('admin') || r.includes('owner') || r.includes('management_control') || r.includes('admin_support') || r.includes('domain_approver');
@@ -600,16 +600,12 @@ window.openNewRequestWizard = (taskIdToEdit = null) => {
         
         <input type="hidden" id="rl" value="${t && t.locationId ? t.locationId : ''}">
         
-        <label>Proprietari/Beneficiari</label>
-        <button type="button" id="btnMultiSelect" class="btn btn-outline" style="width:100%; text-align:left; margin-bottom:10px; background:#fff; border:1px solid #ccc; color:#333; justify-content:space-between;" onclick="document.getElementById('multiSelectContainer').style.display='block'; this.style.display='none';">
-            ${initialBtnText} <span>▼</span>
-        </button>
-        <div id="multiSelectContainer" style="display:none; border:1px solid #ccc; padding:10px; border-radius:8px; margin-bottom:10px; background:#fafafa;">
-            <div style="margin-bottom:10px;" id="multiSelectCheckboxes">
+        <label>Proprietari/Beneficiari (Multi-selezione)</label>
+        <div style="border:1px solid #ccc; padding:10px; border-radius:8px; margin-bottom:15px; background:#fafafa;">
+            <div id="multiSelectCheckboxes" style="display:flex; flex-direction:column; gap:5px;">
                 ${orgHtml}
                 ${famHtml}
             </div>
-            <button type="button" class="btn btn-primary" style="width:100%; padding:8px;" onclick="window.confirmMultiSelect()">OK Conferma Scelta</button>
         </div>
         
         <button type="submit" class="btn ${t ? 'btn-warning' : 'btn-primary'}" style="color:${t ? '#000' : '#fff'}">${t ? 'Salva Modifiche' : 'Salva ed Invia'}</button>
