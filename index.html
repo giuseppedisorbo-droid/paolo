@@ -10,8 +10,17 @@
     <link rel="apple-touch-icon" href="icon.svg">
     <link rel="manifest" href="manifest.json">
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+    <script>
+        window.onerror = function(msg, url, line, col, error) {
+            alert("Error: " + msg + "\nLine: " + line);
+            return false;
+        };
+        window.addEventListener('unhandledrejection', function(event) {
+            alert("Promise Error: " + (event.reason ? event.reason.message : "Scrittura DB fallita. Controlla connessione."));
+        });
+    </script>
     <title>Progetto Paolo V3</title>
-    <link rel="stylesheet" href="style.css?v=4.4">
+    <link rel="stylesheet" href="style.css?v=4.5">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -21,7 +30,7 @@
         <div class="modal-body" style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:100%; background:white;">
             <div style="text-align: center; margin-bottom: 30px;">
                 <h1 style="color:var(--primary); font-size:2.5rem; margin-bottom:10px;">Peppe<br>System</h1>
-                <p style="color:var(--text-muted); line-height:1.4;">Gestione Attività Manutenzione<br><strong>v4.4</strong></p>
+                <p style="color:var(--text-muted); line-height:1.4;">Gestione Attività Manutenzione<br><strong>v4.5</strong></p>
             </div>
             <select id="loginSelect" style="max-width: 300px;">
                 <option value="">Caricamento utenti...</option>
@@ -34,7 +43,7 @@
     <header class="top-header">
         <div style="display:flex; flex-direction:column;">
             <h1 id="headerTitle" style="margin:0; line-height:1;">Home</h1>
-            <div id="headerUserInfo" style="font-size:0.7rem; font-weight:600; color:var(--text-muted); margin-top:2px;">v4.4</div>
+            <div id="headerUserInfo" style="font-size:0.7rem; font-weight:600; color:var(--text-muted); margin-top:2px;">v4.5</div>
         </div>
         <div style="display:flex; gap:15px; align-items:center;">
             <div id="headerWallet" class="wallet-badge hidden">€ 0.00</div>
@@ -257,6 +266,6 @@
         });
       }
     </script>
-    <script type="module" src="app.js?v=4.4"></script>
+    <script type="module" src="app.js?v=4.5"></script>
 </body>
 </html>
