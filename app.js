@@ -79,12 +79,13 @@ window.markNotifRead = async(id)=>updateDoc(doc(db,"notifications",id),{read:tru
 
 function boot() {
     const dName = currentUser.fullName || currentUser.name || currentUser.id;
-    document.getElementById('headerUserInfo').textContent = `${dName} | v6.0`;
+    document.getElementById('headerUserInfo').textContent = `${dName} | v6.2`;
     const r = currentUser.roles||[];
     let nav = '';
     const isSuper = r.includes('admin') || r.includes('owner') || r.includes('management_control') || r.includes('admin_support') || r.includes('domain_approver');
     if(isSuper) {
         nav = `<button class="nav-item active" data-target="view-home" data-title="Home Controllo">${ICONS.home}<span>Home</span></button>
+               <button class="nav-item" data-target="view-agenda" data-title="Agenda">${ICONS.agenda}<span>Agenda</span></button>
                <button class="nav-item" data-target="view-finance" data-title="Costi e Spese">${ICONS.finance}<span>Finanza</span></button>
                <button class="nav-item" data-target="view-directory" data-title="Rubrica">${ICONS.directory}<span>Enti</span></button>
                <button class="nav-item" data-target="view-report" data-title="Report Statistico">${ICONS.report}<span>Report</span></button>`;
@@ -96,6 +97,7 @@ function boot() {
         document.getElementById('headerWallet').classList.remove('hidden');
     } else {
         nav = `<button class="nav-item active" data-target="view-home" data-title="Le Mie Richieste">${ICONS.home}<span>Home</span></button>
+               <button class="nav-item" data-target="view-agenda" data-title="Agenda">${ICONS.agenda}<span>Agenda</span></button>
                <button class="nav-item" data-target="view-directory" data-title="Proprietà">${ICONS.directory}<span>Proprietà</span></button>`;
     }
     document.getElementById('bottomNav').innerHTML = nav;
@@ -258,7 +260,16 @@ function renderAgendaCards() {
     listEl.innerHTML = '';
     
     const isSuper = currentUser.roles.includes('admin') || currentUser.roles.includes('owner') || currentUser.roles.includes('management_control') || currentUser.roles.includes('admin_support') || currentUser.roles.includes('domain_approver');
-    let q = currentUser.roles.includes('technician') && !isSuper ? liveTasks.filter(t=>t.assignedTo===currentUser.id) : liveTasks;
+    let q = liveTasks;
+    if(!isSuper) {
+        if(currentUser.roles.includes('technician')) {
+            q = liveTasks.filter(t=>t.assignedTo===currentUser.id);
+        } else {
+            const myFam = [...(currentUser.familyIds||[]), ...(currentUser.familyIds||[]).map(f=>f.replace('famiglia_','fam_'))];
+            const myOrgs = (currentUser.organizationRoles||[]).map(x=>x.organizationId);
+            q = liveTasks.filter(t=> t.requestedBy===currentUser.id || (t.familyIds||[]).some(b=>myFam.includes(b)) || (t.organizationIds||[]).some(b=>myOrgs.includes(b)));
+        }
+    }
     q = q.filter(t => t.scheduledStart && t.status !== 'completed');
     
     if(window.selectedAgendaDate) {
@@ -302,7 +313,16 @@ function renderAgenda() {
     
     const events = [];
     const isSuper = currentUser.roles.includes('admin') || currentUser.roles.includes('owner') || currentUser.roles.includes('management_control') || currentUser.roles.includes('admin_support') || currentUser.roles.includes('domain_approver');
-    const q = currentUser.roles.includes('technician') && !isSuper ? liveTasks.filter(t=>t.assignedTo===currentUser.id) : liveTasks;
+    let q = liveTasks;
+    if(!isSuper) {
+        if(currentUser.roles.includes('technician')) {
+            q = liveTasks.filter(t=>t.assignedTo===currentUser.id);
+        } else {
+            const myFam = [...(currentUser.familyIds||[]), ...(currentUser.familyIds||[]).map(f=>f.replace('famiglia_','fam_'))];
+            const myOrgs = (currentUser.organizationRoles||[]).map(x=>x.organizationId);
+            q = liveTasks.filter(t=> t.requestedBy===currentUser.id || (t.familyIds||[]).some(b=>myFam.includes(b)) || (t.organizationIds||[]).some(b=>myOrgs.includes(b)));
+        }
+    }
     
     q.filter(t => t.scheduledStart).forEach(t => {
         const d = new Date(t.scheduledStart);
@@ -633,8 +653,8 @@ window.openNewRequestWizard = (taskIdToEdit = null) => {
         }
     }
     
-    // Costruisci le opzioni dei tecnici
-    const wOpts = Object.values(appCache.people).filter(p=>p.roles.includes('technician')).map(p=>`<option value="${p.id}" ${t && t.assignedTo===p.id?'selected':(!t && currentUser.id===p.id?'selected':(p.id==='worker_paolo'?'selected':''))}>${p.fullName||p.name}</option>`).join('');
+    // Costruisci le opzioni dei tecnici escludendo Luca
+    const wOpts = Object.values(appCache.people).filter(p=>p.roles.includes('technician') && p.id !== 'worker_luca').map(p=>`<option value="${p.id}" ${t && t.assignedTo===p.id?'selected':(!t && currentUser.id===p.id?'selected':(p.id==='worker_paolo'?'selected':''))}>${p.fullName||p.name}</option>`).join('');
 
     b.innerHTML = `<form id="wizF" data-edit-id="${taskIdToEdit||''}">
         <input type="text" id="rt" placeholder="Titolo" value="${t ? t.title : ''}" required>
