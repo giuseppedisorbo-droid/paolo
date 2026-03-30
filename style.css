@@ -344,3 +344,36 @@ label {
 .qa-material { color: var(--warning); }
 .qa-expense { color: var(--primary); }
 .qa-reschedule { color: var(--info); }
+
+/* --- PC Layout Configuration --- */
+body.pc-mode {
+    max-width: 500px;
+    margin: 0 auto;
+    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    box-shadow: 0 0 25px rgba(0,0,0,0.1);
+    min-height: 100vh;
+    position: relative;
+    background: white; /* Make background clean inside column */
+}
+/* Center fixed elements globally relative to body */
+body.pc-mode .top-header,
+body.pc-mode .bottom-nav,
+body.pc-mode .modal-fs,
+body.pc-mode .bottom-sheet {
+    max-width: 500px;
+    left: 0;
+    right: 0;
+    margin: 0 auto;
+}
+/* Pivot was set explicitly to max-width 1200px. Unset it to let it fill the 500px container or remain full width */
+body.pc-mode #pivotModal .modal-content {
+    max-width: 500px;
+}
+/* Re-align floating action buttons inside the center column */
+body.pc-mode .fab {
+    right: auto;
+    left: 50%;
+    margin-left: 170px; /* 250px half width - 80px space */
+}
+

@@ -48,6 +48,7 @@
         <div style="display:flex; gap:15px; align-items:center;">
             <div id="headerWallet" class="wallet-badge hidden">€ 0.00</div>
             <button id="btnNotifs" style="background:none; border:none; font-size:1.5rem; position:relative; cursor:pointer;">🔔<span id="notifBadge" class="hidden" style="position:absolute; top:-5px; right:-5px; background:var(--danger); color:white; border-radius:50%; width:18px; height:18px; font-size:0.7rem; font-weight:bold; display:flex; align-items:center; justify-content:center;">0</span></button>
+            <button id="btnTogglePC" onclick="window.togglePcMode()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;" title="Modalità PC">🖥️</button>
             <button id="btnSettings" onclick="document.getElementById('guideModal').classList.add('open')" style="background:none; border:none; font-size:1.5rem; cursor:pointer;" title="Impostazioni e Guida">⚙️</button>
         </div>
     </header>
@@ -406,8 +407,8 @@
     </div>
 
     <!-- Pivot Table Modal -->
-    <div class="modal-fs" id="pivotModal" style="z-index: 1500; align-items: center; justify-content: center;">
-        <div class="modal-content" style="max-width:1200px; width:100%; height:100%; display:flex; flex-direction:column; background: var(--bg);">
+    <div class="modal-fs" id="pivotModal" style="z-index: 1500;">
+        <div class="modal-content" style="max-width:1200px; width:100%; height:100%; margin: 0 auto; display:flex; flex-direction:column; background: var(--bg);">
             <div class="modal-header" style="border-bottom:2px solid #eee; padding-bottom:10px;">
                 <h2 id="pivotTitle" style="color:var(--primary); margin:0;">Pivot Report</h2>
                 <button class="btn btn-outline" style="width: auto; padding: 8px 15px;" onclick="document.getElementById('pivotModal').classList.remove('open')">Chiudi ❌</button>
