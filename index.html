@@ -406,11 +406,11 @@
     </div>
 
     <!-- Pivot Table Modal -->
-    <div class="modal-fs" id="pivotModal" style="z-index: 1500;">
-        <div class="modal-content" style="max-width:1200px; width:95%; height:90vh; display:flex; flex-direction:column;">
-            <div class="flex-between mb-3" style="border-bottom:2px solid #eee; padding-bottom:10px;">
+    <div class="modal-fs" id="pivotModal" style="z-index: 1500; align-items: center; justify-content: center;">
+        <div class="modal-content" style="max-width:1200px; width:100%; height:100%; display:flex; flex-direction:column; background: var(--bg);">
+            <div class="modal-header" style="border-bottom:2px solid #eee; padding-bottom:10px;">
                 <h2 id="pivotTitle" style="color:var(--primary); margin:0;">Pivot Report</h2>
-                <button class="btn btn-outline" onclick="document.getElementById('pivotModal').classList.remove('open')">Chiudi ❌</button>
+                <button class="btn btn-outline" style="width: auto; padding: 8px 15px;" onclick="document.getElementById('pivotModal').classList.remove('open')">Chiudi ❌</button>
             </div>
             <div id="pivotControls" class="mb-3 p-3" style="background:#f8fafc; border-radius:8px; display:flex; gap:15px; flex-wrap:wrap; align-items:center;">
                 <!-- Raggruppamento e Colonne verranno iniettati via JS -->
