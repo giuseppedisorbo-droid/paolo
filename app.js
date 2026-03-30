@@ -1,10 +1,10 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, doc, getDoc, setDoc, updateDoc, serverTimestamp, query, where, onSnapshot, orderBy, deleteDoc, deleteField } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, doc, getDoc, setDoc, updateDoc, serverTimestamp, query, where, onSnapshot, orderBy, deleteDoc, deleteField, arrayUnion } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 const firebaseConfig = {apiKey: "AIzaSyAh7dwRs1j7Vxib7OlB7mVRB-MNthAo5NA", authDomain: "peppe-ai-platform.firebaseapp.com", projectId: "peppe-ai-platform", storageBucket: "peppe-ai-platform.firebasestorage.app", messagingSenderId: "214462018633", appId: "1:214462018633:web:f224407eba3b107e27fb98", measurementId: "G-54RQ3L1EDW"};
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 let currentUser = null;
-const appCache = { locations: {}, families: {}, organizations: {}, people: {}, external_workers: {} };
+const appCache = { locations: {}, families: {}, organizations: {}, people: {}, external_workers: {}, labor_rates: {} };
 let liveTasks = [], liveRequests = [], liveExpenses = [], liveCash = [], liveNotifications = [], liveLogs = [], liveWorkSessions = [];
 
 const ICONS = {
@@ -16,9 +16,9 @@ const ICONS = {
 };
 
 async function init() {
-    await Promise.all(['locations','families','organizations','people','external_workers'].map(async coll => {
+    await Promise.all(['locations','families','organizations','people','external_workers','labor_rates'].map(async coll => {
         const s = await getDocs(collection(db, coll));
-        s.forEach(d => appCache[coll][d.id] = d.data());
+        s.forEach(d => appCache[coll][d.id] = {...d.data(), id: d.id});
     }));
     
     const needsSeed = Object.keys(appCache.people).length === 0 || Object.keys(appCache.organizations).length === 0;
@@ -126,6 +126,7 @@ const getEntTags=(fam,org)=>`${(fam||[]).map(x=>`<span class="entity-tag family"
 
 function renderHome() {
     const feed = document.getElementById('feedList'); feed.innerHTML='';
+
     const isAdmin = currentUser.roles.includes('admin') || currentUser.roles.includes('owner');
     const isSupervisor = currentUser.roles.includes('management_control') || currentUser.roles.includes('admin_support');
     const isDomainApprover = currentUser.roles.includes('domain_approver');
@@ -151,8 +152,53 @@ function renderHome() {
             if((item.organizationIds||[]).some(x=>myOrgs.includes(x))) return true;
             return false;
         }
+        if(isWorker) {
+            if(item.assignedTo === currentUser.id) return true;
+            if(item.requestedBy === currentUser.id) return true;
+            return false;
+        }
         return false;
     };
+
+    const getPriCounters = (filterType) => {
+        let count = 0, newCount = 0;
+        liveTasks.forEach(t => {
+            if(t.status === 'completed') return;
+            if(!canSee(t)) return; // <-- Only count what user can see
+            
+            let match = false;
+            if(filterType === 'all') match = true;
+            else if(filterType === 'high') { if(t.priority==='high') match=true; }
+            else if(filterType === 'medium') { if(t.priority==='medium' || !t.priority) match=true; }
+            else if(filterType === 'low') { if(t.priority==='low') match=true; }
+            else if(filterType === 'scheduled') { if(t.scheduledStart) match=true; }
+            else if(filterType === 'unscheduled') { if(!t.scheduledStart) match=true; }
+            if(match) { count++; if(!(t.readBy||[]).includes(currentUser.id)) newCount++; }
+        });
+        return {count, newCount};
+    };
+
+    let dashHtml = `<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px;">`;
+    const btns = [
+        {id:'all', label:'TUTTI I TASK', bg:'#10b981'},
+        {id:'high', label:'Alta Priorità', bg:'#dc2626'},
+        {id:'medium', label:'Media Priorità', bg:'#d97706'},
+        {id:'low', label:'Bassa Priorità', bg:'#2563eb'},
+        {id:'scheduled', label:'Programmati', bg:'#0284c7'},
+        {id:'unscheduled', label:'Senza Data', bg:'#475569'},
+    ];
+    btns.forEach((b, i) => {
+        const c = getPriCounters(b.id);
+        const span = (b.id === 'all' || b.id === 'unscheduled') ? `grid-column: 1 / -1;` : '';
+        dashHtml += `<div onclick="window.openPivotModal('${b.id}')" class="shadow-sm" style="background:${b.bg}; color:white; padding:15px; border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; position:relative; ${span} transition:0.2s;" onmouseover="this.style.opacity=0.9" onmouseout="this.style.opacity=1">
+            <div style="font-weight:bold; font-size:1.1rem; text-align:center;">${b.label}</div>
+            <div style="font-size:1.8rem; font-weight:800; margin-top:5px;">${c.count}</div>
+            ${c.newCount > 0 ? `<div style="position:absolute; top:-8px; right:-8px; background:var(--danger); color:white; border-radius:12px; padding:4px 10px; font-size:0.85rem; font-weight:bold; border:2px solid white; box-shadow:0 2px 4px rgba(0,0,0,0.2); animation: pulse 2s infinite;">${c.newCount} Nuovi</div>` : ''}
+        </div>`;
+    });
+    dashHtml += `</div>`;
+    feed.innerHTML = dashHtml;
+
 
     if(isAdmin || isSupervisor || isDomainApprover) {
         liveRequests.filter(r=> (r.status==='new'||r.status==='approved') && canSee(r)).forEach(r => feed.innerHTML += `<div class="card"><div class="card-header"><span class="status-badge status-${r.status}">${r.status}</span> <span style="font-size:0.8rem;color:var(--text-muted)">📍 ${appCache.locations[r.locationId]?.name||'N/D'}</span></div><div class="card-title">${r.title}</div><p style="font-size:0.9rem;color:#666">${r.description}</p><div class="entity-tags">${getEntTags(r.familyIds,r.organizationIds)}</div><button class="btn btn-primary mt-2" onclick="window.openApproveWizard('${r.id}')">Assegna e Pianifica</button></div>`);
@@ -189,7 +235,7 @@ function renderHome() {
         sortAgenda(morning); sortAgenda(afternoon);
 
         let html = '';
-        if(morning.length===0 && afternoon.length===0) { feed.innerHTML = '<div class="text-center text-muted">Nessuna attività pendente per oggi. Vai al mare! 🏖️</div>'; return; }
+        if(morning.length===0 && afternoon.length===0 && pendingProps.length===0) { feed.innerHTML += '<div class="text-center text-muted mt-4 mb-4">Nessuna attività pendente per oggi. Vai al mare! 🏖️</div>'; return; }
 
         const buildQA = (t) => `
             <div class="card" style="border-left: 5px solid ${t.priority==='urgent'||t.priority==='high'?'var(--danger)':'var(--primary)'}">
@@ -209,8 +255,8 @@ function renderHome() {
 
         if(morning.length > 0) { html += '<h3 style="margin-bottom:12px; color:var(--primary); font-size:1.1rem; border-bottom:2px solid var(--border); padding-bottom:5px;">☀️ Mattina</h3>'; morning.forEach(t => html += buildQA(t)); }
         if(afternoon.length > 0) { html += '<h3 style="margin-top:20px; margin-bottom:12px; color:var(--primary); font-size:1.1rem; border-bottom:2px solid var(--border); padding-bottom:5px;">🌙 Pomeriggio</h3>'; afternoon.forEach(t => html += buildQA(t)); }
-        if(pendingProps.length > 0) { html += '<h3 style="margin-top:20px; margin-bottom:12px; color:var(--warning); font-size:1.1rem; border-bottom:2px solid var(--border); padding-bottom:5px;">🟡 Proposti (In Attesa)</h3>'; pendingProps.forEach(t => html += `<div class="card" style="border-left: 5px solid var(--warning)"><div class="card-header"><div><span class="status-badge" style="background:var(--warning); color:white;">⏳ IN ATTESA</span></div><div style="text-align:right"><span style="font-size:0.75rem; color:var(--text-muted)">📍 ${appCache.locations[t.locationId]?.name||'N/D'}</span></div></div><div class="card-title">${t.title}</div><div class="entity-tags" style="margin-bottom:10px;">${getEntTags(t.familyIds,t.organizationIds)}</div></div>`); }
-        feed.innerHTML = html;
+        if(pendingProps.length > 0) { html += '<h3 style="margin-top:20px; margin-bottom:12px; color:var(--warning); font-size:1.1rem; border-bottom:2px solid var(--border); padding-bottom:5px;">🟡 Proposti (In Attesa)</h3>'; pendingProps.forEach(t => html += `<div class="card" style="border-left: 5px solid var(--warning)"><div class="card-header"><div><span class="status-badge" style="background:var(--warning); color:white;">⏳ IN ATTESA</span></div><div style="text-align:right"><span style="font-size:0.75rem; color:var(--text-muted)">📍 ${appCache.locations[t.locationId]?.name||'N/D'}</span></div></div><div class="card-title" onclick="window.openTaskDetail('${t.id}')" style="cursor:pointer;">${t.title}</div><div class="entity-tags" style="margin-bottom:10px;">${getEntTags(t.familyIds,t.organizationIds)}</div></div>`); }
+        feed.innerHTML += html;
     } else {
         liveTasks.filter(t=> t.requestedBy===currentUser.id || (t.familyIds||[]).some(b=>myFam.includes(b)) || (t.organizationIds||[]).some(b=>myOrgs.includes(b)))
                  .forEach(t => {
@@ -472,6 +518,49 @@ window.addDirectoryItem = async (coll) => {
     }
 };
 
+window.addLaborRate = async () => {
+    const opts = [...Object.values(appCache.organizations).map(o=>o.name), ...Object.values(appCache.families).map(f=>f.name)];
+    const locName = prompt("Inserisci Proprietario o Luogo per questa tariffa:\n(Es: " + opts.slice(0,5).join(', ') + "...)");
+    if(!locName || !locName.trim()) return;
+    const rate = prompt("Inserisci la tariffa oraria (€/h) per " + locName + ":");
+    if(!rate || isNaN(rate)) return;
+    try {
+        const docRef = await addDoc(collection(db, 'labor_rates'), { locationName: locName.trim(), hourlyRate: parseFloat(rate) });
+        appCache['labor_rates'][docRef.id] = { id: docRef.id, locationName: locName.trim(), hourlyRate: parseFloat(rate) };
+        renderDirectory();
+    } catch(e) {
+        alert("Errore salvataggio: " + e.message);
+    }
+};
+
+window.editLaborRate = async (id) => {
+    const r = appCache['labor_rates'][id];
+    if(!r) return;
+    const locName = prompt("Modifica Nome Luogo:", r.locationName);
+    if(!locName || !locName.trim()) return;
+    const rate = prompt("Modifica Tariffa (€/h):", r.hourlyRate);
+    if(!rate || isNaN(rate)) return;
+    try {
+        await updateDoc(doc(db, 'labor_rates', id), { locationName: locName.trim(), hourlyRate: parseFloat(rate) });
+        r.locationName = locName.trim();
+        r.hourlyRate = parseFloat(rate);
+        renderDirectory();
+    } catch(e) {
+        alert("Errore modifica: " + e.message);
+    }
+};
+
+window.deleteLaborRate = async (id) => {
+    if(!confirm("Sicuro di eliminare questa tariffa?")) return;
+    try {
+        await deleteDoc(doc(db, 'labor_rates', id));
+        delete appCache['labor_rates'][id];
+        renderDirectory();
+    } catch(e) {
+        alert("Errore eliminazione: " + e.message);
+    }
+};
+
 function renderDirectory() {
     const d = document.getElementById('directoryList'); d.innerHTML='';
     const sections = [
@@ -493,6 +582,20 @@ function renderDirectory() {
             </div>
         </div>`;
     });
+    
+    // Labor Rates Section
+    const rates = Object.values(appCache['labor_rates']).sort((a,b)=>(a.locationName||'').localeCompare(b.locationName||''));
+    html += `<div class="card mb-3" style="padding:0; overflow:hidden;">
+        <div class="card-header" style="margin:0; padding:15px; background:var(--surface); cursor:pointer; border-bottom:1px solid var(--border);" onclick="window.toggleDirSection('labor_rates')">
+            <h3 style="margin:0; font-size:1.1rem; color:var(--danger);">Costi Orari per Proprietario (${rates.length}) <span>▼</span></h3>
+        </div>
+        <div id="dir_sec_labor_rates" style="display:none; padding:15px; background:var(--bg);">
+            <button class="btn btn-outline mb-3" onclick="window.addLaborRate()" style="padding:8px; font-size:0.9rem;">➕ Aggiungi Nuova Tariffa</button>
+            ${rates.map(r => `<div class="flex-between" style="padding:8px 0; border-bottom:1px dashed #ccc;"><strong style="font-size:0.95rem;">${r.locationName}</strong><div><span style="margin-right:15px; color:var(--danger); font-weight:bold;">€${r.hourlyRate.toFixed(2)}/h</span><button style="background:none; border:none; cursor:pointer;" onclick="window.editLaborRate('${r.id}')">✏️</button><button style="background:none; border:none; cursor:pointer; margin-left:10px;" onclick="window.deleteLaborRate('${r.id}')">🗑️</button></div></div>`).join('')}
+            ${rates.length===0 ? '<div class="text-muted">Nessuna tariffa impostata.</div>' : ''}
+        </div>
+    </div>`;
+
     d.innerHTML = html;
 }
 
@@ -562,12 +665,30 @@ function renderReport() {
             ${Object.entries(opsByLoc).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="flex-between" style="padding:6px 0; border-bottom:1px dashed #eee;"><span style="font-size:0.85rem;">${appCache.locations[k]?.name||k}</span><span class="entity-tag location">${v} Interv.</span></div>`).join('')}
         </div>
 
+        <div class="card mb-4" style="background:#f8fafc; border:1px solid #e2e8f0; border-left: 4px solid var(--primary);">
+            <h3 style="color:var(--primary); margin-bottom:10px;">📈 Pivot Costi e Ore Lavoro</h3>
+            <p style="font-size:0.85rem; color:#666; margin-bottom:15px;">Analizza ed esplora i task completati e i costi orari imputati.</p>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <button class="btn btn-outline" style="padding:10px; font-weight:bold;" onclick="window.openPivotModal('today')">Oggi</button>
+                <button class="btn btn-outline" style="padding:10px; font-weight:bold;" onclick="window.openPivotModal('week')">Ultimi 7 gg</button>
+                <button class="btn btn-outline" style="padding:10px; font-weight:bold;" onclick="window.openPivotModal('month')">Ultimo Mese</button>
+                <button class="btn btn-outline" style="padding:10px; font-weight:bold;" onclick="window.openPivotModal('year')">Quest'Anno</button>
+            </div>
+            <button class="btn btn-primary mt-3" style="width:100%; padding:12px; font-weight:bold; font-size:1.1rem;" onclick="window.openPivotModal('completed')">Tutti i Task Completati</button>
+        </div>
+
         <button class="btn btn-outline" style="margin-bottom:20px;" onclick="alert('Export CSV / Struttura Dati pronta nel database Firebase!')">📥 Esporta Dati</button>
     `;
 }
 
-window.openTaskDetail = (taskId) => {
-    const t = liveTasks.find(x=>x.id===taskId);
+window.openTaskDetail = async (taskId) => {
+    const t = liveTasks.find(x=>x.id===taskId); if(!t) return;
+    if(!(t.readBy||[]).includes(currentUser.id)) {
+        await updateDoc(doc(db,"tasks",taskId),{readBy: arrayUnion(currentUser.id)});
+        if(!t.readBy) t.readBy = [];
+        t.readBy.push(currentUser.id);
+        renderHome();
+    }
     const ev = liveExpenses.filter(e=>e.taskId===taskId);
     const expHtml = ev.length===0?'Nessuna spesa.':ev.map(e=>`<div class="flex-between"><span>${e.description}</span><strong>€${e.amount.toFixed(2)}</strong></div><div style="font-size:0.75rem; color:var(--text-muted)">${(e.allocations||[]).map(a=>`${appCache.organizations[a.entityId]?.name || appCache.families[a.entityId]?.name || a.entityId}(${a.percentage.toFixed(0)}%)`).join(', ')}</div><div class="mt-1" style="text-align:right;"><button class="btn btn-outline" style="padding:4px 8px; font-size:0.75rem; margin-right:5px;" onclick="window.editExpense('${e.id}')">✏️ Modifica</button><button class="btn btn-danger btn-outline" style="padding:4px 8px; font-size:0.75rem;" onclick="window.deleteExpense('${e.id}', true)">🗑️ Elimina</button></div>`).join('');
     let supW = ``; if(t.supportWorkers && t.supportWorkers.length > 0) { supW = `<div class="mt-2"><span style="font-size:0.8rem; color:#666;">👨‍🔧 Supporto:</span> ${t.supportWorkers.map(w=>`<span class="entity-tag" style="background:#e0f2fe; color:#1e40af;">${appCache.external_workers[w]?.fullName||w}</span>`).join(' ')}</div>`; }
@@ -580,12 +701,28 @@ window.openTaskDetail = (taskId) => {
     }
     
     if(t.status !== 'completed') acts = `<button class="btn btn-warning mb-2" style="width:100%; color:black;" onclick="window.openNewRequestWizard('${t.id}')">✏️ Modifica Task</button>` + acts;
+    else acts = `<button class="btn btn-info mb-2" style="width:100%; color:white; background:var(--primary);" onclick="window.openCompleteTaskWizard('${t.id}')">✏️ Modifica Consuntivo Costo</button>` + acts;
     acts += `<button class="btn btn-danger btn-outline mt-4" onclick="window.execAction('DEL_TASK','${t.id}')">🗑️ Elimina</button>`;
 
     const wv = liveWorkSessions.filter(w=>w.taskId===taskId);
     const wrkHtml = wv.length===0?'<div class="text-muted" style="font-size:0.85rem;">Nessuna manovalanza.</div>':wv.map(w=>`<div class="flex-between" style="margin-top:5px; border-top:1px dashed #eee; padding-top:5px;"><span>${appCache.external_workers[w.workerId]?.fullName||w.workerId} (${w.hours}h)</span><strong>€${w.cost.toFixed(2)}</strong></div><div style="font-size:0.75rem; color:var(--text-muted)">${(w.allocations||[]).map(a=>`${appCache.organizations[a.entityId]?.name || appCache.families[a.entityId]?.name || a.entityId}(${a.percentage.toFixed(0)}%)`).join(', ')}</div><div class="mt-1" style="text-align:right;"><button class="btn btn-outline" style="padding:4px 8px; font-size:0.75rem; margin-right:5px;" onclick="window.editWorkSession('${w.id}')">✏️ Modifica</button><button class="btn btn-danger btn-outline" style="padding:4px 8px; font-size:0.75rem;" onclick="window.deleteWorkSession('${w.id}')">🗑️ Elimina</button></div>`).join('');
     
-    document.getElementById('taskDetailContent').innerHTML = `<span class="status-badge status-${t.status} mb-2">${window.getStatusText(t.status)}</span><h2 class="mb-2">${t.title}</h2><div class="entity-tags">${getEntTags(t.familyIds,t.organizationIds)}</div>${supW}<p class="mt-2">${t.description}</p><h4 class="mt-4">Spese Materiali</h4>${expHtml}<h4 class="mt-4">Costi Manovalanza</h4>${wrkHtml}`;
+    let prioBadge = '';
+    if(t.priority) {
+        const pColors = {high: '#dc2626', medium: '#d97706', low: '#2563eb'};
+        const pText = {high: 'Alta', medium: 'Media', low: 'Bassa'};
+        prioBadge = `<span class="status-badge" style="background:${pColors[t.priority]}; color:white; margin-left:10px;">Priorità: ${pText[t.priority]}</span>`;
+    }
+
+    let laborInfo = '';
+    if(t.status === 'completed' && t.laborCost !== undefined) {
+        laborInfo = `<div style="margin-top:15px; padding:15px; background:#f0f9ff; border:1px solid #bae6fd; border-radius:8px;">
+            <div style="font-size:0.9rem; color:#0369a1; margin-bottom:5px;"><strong>Costo Ora di Lavoro:</strong> €${t.laborCost.toFixed(2)} (${t.activityType||'N/A'})</div>
+            <div style="font-size:0.8rem; color:#475569;">Inizio: ${new Date(t.actualStart).toLocaleString()}<br>Fine: ${new Date(t.actualEnd).toLocaleString()}</div>
+        </div>`;
+    }
+
+    document.getElementById('taskDetailContent').innerHTML = `<span class="status-badge status-${t.status} mb-2">${window.getStatusText(t.status)}</span>${prioBadge}<h2 class="mb-2 mt-2">${t.title}</h2><div class="entity-tags">${getEntTags(t.familyIds,t.organizationIds)}</div>${supW}${laborInfo}<p class="mt-2">${t.description}</p><h4 class="mt-4">Spese Materiali</h4>${expHtml}<h4 class="mt-4">Manovalanza Esterna</h4>${wrkHtml}`;
     const logH = liveLogs.filter(l=>l.entityId===taskId).sort((a,b)=>b.timestamp-a.timestamp).map(l=>`<div style="font-size:0.75rem; border-left:2px solid #ccc; padding-left:5px;"><strong>${l.userName}</strong>: ${l.action}</div>`).join('');
     const isSuper = currentUser.roles.includes('admin') || currentUser.roles.includes('owner') || currentUser.roles.includes('management_control') || currentUser.roles.includes('admin_support') || currentUser.roles.includes('domain_approver');
     document.getElementById('taskDetailContent').innerHTML += isSuper ? `<h4 class="mt-4">Audit Logs</h4>${logH}` : '';
@@ -596,13 +733,90 @@ window.openTaskDetail = (taskId) => {
 window.execAction = async (act, id) => {
     const bd = document.getElementById('bsBackdrop'); if(bd) bd.classList.remove('open');
     if(act==='APPROVE_PROPOSED') { const t=liveTasks.find(x=>x.id===id); await updateDoc(doc(db,"tasks",id),{status:'assigned', scheduledStart: new Date().toISOString()}); await logActivity('APPROVE_PROPOSED','task',id); sendNotification(t.assignedTo, 'Proposta Approvata', `${currentUser.fullName} ha approvato: ${t.title}`); return; }
-    else if(act==='START_TASK') { await updateDoc(doc(db,"tasks",id),{status:'in_progress'}); await logActivity('START_TASK','task',id); }
-    else if(act==='COMP_TASK') { const t=liveTasks.find(x=>x.id===id); await updateDoc(doc(db,"tasks",id),{status:'completed'}); await logActivity('COMP_TASK','task',id); if(t.assignedTo) sendNotification('admin', 'Task Completato', `${currentUser.fullName} ha completato: ${t.title}`); }
+    else if(act==='START_TASK') { await updateDoc(doc(db,"tasks",id),{status:'in_progress', actualStart: new Date().toISOString()}); await logActivity('START_TASK','task',id); }
+    else if(act==='COMP_TASK') { window.openCompleteTaskWizard(id); return; }
     else if(act==='DEL_TASK') { 
         if(confirm("Sicuro di voler eliminare definitivamente questo task e le sue registrazioni associate?")) { await logActivity('DEL_TASK','task',id); await deleteDoc(doc(db,"tasks",id)); } 
     }
     else if(act==='TOGGLE_MATERIAL') { const t=liveTasks.find(x=>x.id===id); await updateDoc(doc(db,"tasks",id),{needsMaterial:!t.needsMaterial}); await logActivity(t.needsMaterial?'FOUND_MATERIAL':'MISSING_MATERIAL','task',id); if(!t.needsMaterial) sendNotification('admin', 'Materiale Mancante', `${t.title} è senza materiali.`); }
     const m = document.getElementById('taskDetailModal'); if(m) m.classList.remove('open');
+};
+
+window.openCompleteTaskWizard = (taskId) => {
+    const t = liveTasks.find(x=>x.id===taskId); if(!t) return;
+    const b = document.getElementById('wizardBody'); document.getElementById('wizardTitle').textContent="Completa Task e Costi";
+    
+    let rate = 0;
+    const names = [ ...(t.familyIds||[]).map(x=>appCache.families[x]?.name), ...(t.organizationIds||[]).map(x=>appCache.organizations[x]?.name) ].filter(x=>x);
+    if(names.length > 0) {
+        const labor = Object.values(appCache['labor_rates']).find(r => names.includes(r.locationName));
+        if (labor) rate = labor.hourlyRate;
+    }
+
+    const nowD = new Date();
+    const nowIso = new Date(nowD.getTime() - (nowD.getTimezoneOffset() * 60000)).toISOString().slice(0,16);
+    let startIso = nowIso;
+    if(t.actualStart) {
+        const sD = new Date(t.actualStart); sD.setMinutes(sD.getMinutes() - sD.getTimezoneOffset());
+        startIso = sD.toISOString().slice(0,16);
+    } else if (t.scheduledStart) {
+        const sD = new Date(t.scheduledStart); sD.setMinutes(sD.getMinutes() - sD.getTimezoneOffset());
+        startIso = sD.toISOString().slice(0,16);
+    }
+
+    b.innerHTML = `<form id="wcF">
+        <label>Ora Inizio Effettiva</label>
+        <input type="datetime-local" id="wcStart" value="${startIso}" required>
+        <label>Ora Fine Effettiva</label>
+        <input type="datetime-local" id="wcEnd" value="${nowIso}" required>
+        <label>Tipo di Attività</label>
+        <input type="text" id="wcType" placeholder="Es. Riparazione Elettrica o Idraulica" value="${t.activityType||''}" required>
+        <label>Tariffa Oraria Applicata (€/h)</label>
+        <input type="number" id="wcRate" step="0.01" value="${rate}">
+        <div id="wcCostDiv" style="font-weight:bold; font-size:1.1rem; margin:15px 0; color:var(--danger);">Costo Totale: €0.00</div>
+        <button type="submit" class="btn btn-success" style="width:100%;">Conferma Chiusura Task</button>
+    </form>`;
+
+    const updC = () => {
+        const s = new Date(b.querySelector('#wcStart').value);
+        const e = new Date(b.querySelector('#wcEnd').value);
+        const r = parseFloat(b.querySelector('#wcRate').value) || 0;
+        if(s && e && e > s) {
+            const hrs = (e - s) / 3600000;
+            b.querySelector('#wcCostDiv').textContent = `Costo Totale: €${(hrs * r).toFixed(2)} (${hrs.toFixed(2)} ore)`;
+        } else {
+            b.querySelector('#wcCostDiv').textContent = `Costo Totale: €0.00`;
+        }
+    };
+    b.querySelector('#wcStart').addEventListener('change', updC);
+    b.querySelector('#wcEnd').addEventListener('change', updC);
+    b.querySelector('#wcRate').addEventListener('input', updC);
+    updC();
+
+    b.querySelector('#wcF').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const start = new Date(b.querySelector('#wcStart').value).toISOString();
+        const end = new Date(b.querySelector('#wcEnd').value).toISOString();
+        const type = b.querySelector('#wcType').value;
+        const r = parseFloat(b.querySelector('#wcRate').value) || 0;
+        const hrs = (new Date(end) - new Date(start)) / 3600000;
+        const cost = hrs > 0 ? hrs * r : 0;
+
+        await updateDoc(doc(db,"tasks",taskId),{
+            status:'completed',
+            actualStart: start,
+            actualEnd: end,
+            activityType: type,
+            laborRateValue: r,
+            laborCost: parseFloat(cost.toFixed(2))
+        });
+        await logActivity('COMP_TASK','task',taskId);
+        if(t.assignedTo) sendNotification('admin', 'Task Completato', `${currentUser.fullName} ha completato: ${t.title} con costo €${cost.toFixed(2)}`);
+        
+        document.getElementById('actionWizardModal').classList.remove('open');
+        const m = document.getElementById('taskDetailModal'); if(m) m.classList.remove('open');
+    });
+    document.getElementById('actionWizardModal').classList.add('open');
 };
 
 window.tempRichDescription = "";
@@ -682,13 +896,20 @@ window.openNewRequestWizard = (taskIdToEdit = null) => {
         
         <input type="hidden" id="rl" value="${t && t.locationId ? t.locationId : ''}">
         
+        <label>Priorità</label>
+        <select id="rPriority" style="margin-bottom:15px; width:100%;">
+            <option value="low" ${t && t.priority==='low'?'selected':''}>Bassa</option>
+            <option value="medium" ${t && t.priority==='medium'?'selected':(!t?'selected':'')}>Media</option>
+            <option value="high" ${t && t.priority==='high'?'selected':''}>Alta</option>
+        </select>
+        
         <label>Tecnico Incaricato</label>
         <select id="rAssignee" style="margin-bottom:15px; width:100%;">
             ${wOpts}
             <option value="none">-- Da decidere --</option>
         </select>
         
-        <label>Proprietari/Beneficiari (Multi-selezione)</label>
+        <label>Luoghi di Lavoro / Destinatari (Multi-selezione)</label>
         <div style="border:1px solid #ccc; padding:10px; border-radius:8px; margin-bottom:15px; background:#fafafa;">
             <div id="multiSelectCheckboxes" style="display:flex; flex-direction:column; gap:5px;">
                 ${orgHtml}
@@ -727,6 +948,7 @@ window.openNewRequestWizard = (taskIdToEdit = null) => {
             description: window.tempRichDescription,
             attachments: window.tempAttachments,
             organizationIds: orgIds, familyIds: famIds,
+            priority: b.querySelector('#rPriority').value,
             assignedTo: b.querySelector('#rAssignee').value === 'none' ? null : b.querySelector('#rAssignee').value
         };
         
@@ -801,13 +1023,35 @@ window.confirmMultiSelectExp = () => {
 
 window.openApproveWizard = (reqId) => {
     const r = liveRequests.find(x=>x.id===reqId);
-    const b = document.getElementById('wizardBody'); document.getElementById('wizardTitle').textContent="Assegna";
-    const d=new Date(); d.setDate(d.getDate()+1); d.setHours(8,0,0,0); const iso=(new Date(d-d.getTimezoneOffset()*60000)).toISOString().slice(0,16);
-    b.innerHTML = `<form id="waF"><select id="waw" required>${Object.values(appCache.people).filter(p=>p.roles.includes('technician') && p.id !== 'worker_luca').map(p=>`<option value="${p.id}" ${p.id==='worker_paolo'?'selected':''}>${p.fullName}</option>`).join('')}</select><input type="datetime-local" id="was" value="${iso}" required><button type="submit" class="btn btn-success mt-4">Assegna e Crea Task</button></form>`;
+    const b = document.getElementById('wizardBody'); document.getElementById('wizardTitle').textContent="Assegna e Pianifica";
+    
+    let dtHtml = '';
+    if(r.scheduledStart) {
+        dtHtml = `<label class="mt-3">Conferma Data e Ora</label><input type="datetime-local" id="was" value="${r.scheduledStart.slice(0,16)}">`;
+    } else {
+        dtHtml = `<label class="mt-3">Pianifica Data (Opzionale, lascia vuoto per mantenere Senza Data)</label><input type="datetime-local" id="was">`;
+    }
+
+    b.innerHTML = `<form id="waF">
+        <label>Seleziona Tecnico</label>
+        <select id="waw" required>${Object.values(appCache.people).filter(p=>p.roles.includes('technician') && p.id !== 'worker_luca').map(p=>`<option value="${p.id}" ${p.id==='worker_paolo'?'selected':''}>${p.fullName}</option>`).join('')}</select>
+        ${dtHtml}
+        <button type="submit" class="btn btn-success mt-4">Definitivo: Assegna e Crea Task</button>
+    </form>`;
+
     b.querySelector('#waF').addEventListener('submit', async (e) => {
         e.preventDefault();
+        const was = b.querySelector('#was').value;
         await updateDoc(doc(db,"requests",reqId),{status:'assigned'});
-        await addDoc(collection(db,"tasks"),{requestId:reqId, title:r.title,description:r.description,locationId:r.locationId,familyIds:r.familyIds,organizationIds:r.organizationIds,assignedTo:b.querySelector('#waw').value, scheduledStart:b.querySelector('#was').value, status:'assigned', createdAt:serverTimestamp()});
+        await addDoc(collection(db,"tasks"),{
+            requestId:reqId, title:r.title, description:r.description, attachments: r.attachments||[],
+            locationId:r.locationId, familyIds:r.familyIds, organizationIds:r.organizationIds, priority:r.priority||'medium',
+            assignedTo:b.querySelector('#waw').value, 
+            scheduledStart: was ? was : null, 
+            scheduledEnd: r.scheduledEnd || null,
+            status:'assigned', 
+            createdAt:serverTimestamp()
+        });
         document.getElementById('actionWizardModal').classList.remove('open');
     });
     document.getElementById('actionWizardModal').classList.add('open');
@@ -1223,3 +1467,218 @@ window.editExpense = async (id) => {
         else { const b = document.getElementById('bottomNav').querySelector('.nav-item.active'); if(b && b.dataset.target === 'view-finance') renderFinance(); }
     } catch(err) { alert("Errore modifica: " + err.message); }
 };
+
+window.openPivotModal = (filterType) => {
+    let tasks = [];
+    const todayIso = new Date().toISOString().split('T')[0];
+    const wD = new Date(); wD.setDate(wD.getDate()-7);
+    const mD = new Date(); mD.setMonth(mD.getMonth()-1);
+    const currY = new Date().getFullYear().toString();
+
+    const isAdmin = currentUser.roles.includes('admin') || currentUser.roles.includes('owner');
+    const isSupervisor = currentUser.roles.includes('management_control') || currentUser.roles.includes('admin_support');
+    const isDomainApprover = currentUser.roles.includes('domain_approver');
+    const isWorker = currentUser.roles.includes('technician');
+    const myFam = [...(currentUser.familyIds||[]), ...(currentUser.familyIds||[]).map(f=>f.replace('famiglia_','fam_'))];
+    const myOrgs = (currentUser.organizationRoles||[]).map(x=>x.organizationId);
+
+    const canSee = (item) => {
+        if(isAdmin) return true;
+        if(isSupervisor) {
+            if(item.status === 'pending_approval' || item.status === 'new') return true;
+            if((item.familyIds||[]).includes('famiglia_teresa') || (item.familyIds||[]).includes('fam_teresa')) return true;
+            if((item.organizationIds||[]).includes('eubios') || (item.organizationIds||[]).includes('org_eubios')) return true;
+            return false;
+        }
+        if(isDomainApprover) {
+            if(item.status === 'pending_approval' && (
+                (item.familyIds||[]).some(x=>myFam.includes(x)) || 
+                (item.organizationIds||[]).some(x=>myOrgs.includes(x))
+            )) return true;
+            if((item.familyIds||[]).some(x=>myFam.includes(x))) return true;
+            if((item.organizationIds||[]).some(x=>myOrgs.includes(x))) return true;
+            return false;
+        }
+        if(isWorker) {
+            if(item.assignedTo === currentUser.id) return true;
+            if(item.requestedBy === currentUser.id) return true;
+            return false;
+        }
+        return false;
+    };
+
+    liveTasks.forEach(t => {
+        if(!canSee(t)) return;
+        
+        let match = false;
+        if(filterType === 'all') match = true;
+        else if (filterType === 'completed') { if(t.status === 'completed') match = true; }
+        else if (filterType === 'today') { if(t.status==='completed' && t.actualEnd && t.actualEnd.startsWith(todayIso)) match=true; }
+        else if (filterType === 'week') { if(t.status==='completed' && t.actualEnd && new Date(t.actualEnd) >= wD) match=true; }
+        else if (filterType === 'month') { if(t.status==='completed' && t.actualEnd && new Date(t.actualEnd) >= mD) match=true; }
+        else if (filterType === 'year') { if(t.status==='completed' && t.actualEnd && t.actualEnd.startsWith(currY)) match=true; }
+        else if(t.status !== 'completed') {
+            if(filterType === 'high') { if(t.priority==='high') match=true; }
+            else if(filterType === 'medium') { if(t.priority==='medium' || !t.priority) match=true; }
+            else if(filterType === 'low') { if(t.priority==='low') match=true; }
+            else if(filterType === 'scheduled') { if(t.scheduledStart) match=true; }
+            else if(filterType === 'unscheduled') { if(!t.scheduledStart) match=true; }
+        }
+        if(match) tasks.push(t);
+    });
+
+    const labels = {
+        'high': 'Alta Priorità', 'medium': 'Media Priorità', 'low': 'Bassa Priorità',
+        'scheduled': 'Programmati', 'unscheduled': 'Senza Data', 'all': 'Tutti i Task', 'completed': 'Tutti Completati',
+        'today': 'Completati Oggi', 'week': 'Complessivi (7gg)', 'month': 'Mensilità', 'year': "Quest'Anno"
+    };
+    document.getElementById('pivotTitle').textContent = `Pivot: ${labels[filterType] || filterType} (${tasks.length})`;
+    document.getElementById('pivotModal').classList.add('open');
+    
+    window.currentPivotTasks = tasks;
+    window.renderPivotTable('none');
+};
+
+window.renderPivotTable = (groupBy = 'none') => {
+    const tasks = window.currentPivotTasks || [];
+    const container = document.getElementById('pivotContainer');
+    const controls = document.getElementById('pivotControls');
+
+    controls.innerHTML = `
+        <div>
+            <strong>Raggruppa per:</strong>
+            <select id="pivotGroupSelect" onchange="window.renderPivotTable(this.value)" style="padding:5px; border-radius:4px; margin-left:10px;">
+                <option value="none" ${groupBy==='none'?'selected':''}>Nessuno</option>
+                <option value="day" ${groupBy==='day'?'selected':''}>Giorno (Completamento o Atteso)</option>
+                <option value="location" ${groupBy==='location'?'selected':''}>Proprietario / Luogo</option>
+            </select>
+        </div>
+        <div style="flex:1;"></div>
+        <div style="display:flex; gap:10px; font-size:0.85rem;" id="pivotColumnsToggle">
+            <label><input type="checkbox" checked onchange="window.pivotToggleCol('col-start')"> Inizio</label>
+            <label><input type="checkbox" checked onchange="window.pivotToggleCol('col-end')"> Fine</label>
+            <label><input type="checkbox" checked onchange="window.pivotToggleCol('col-luogo')"> Destinatario</label>
+            <label><input type="checkbox" checked onchange="window.pivotToggleCol('col-costo')"> Costo Lavoro</label>
+            <label><input type="checkbox" checked onchange="window.pivotToggleCol('col-tech')"> Tecnico</label>
+        </div>
+    `;
+
+    let groups = {};
+    if (groupBy === 'none') {
+        groups['Tutti i Task'] = tasks;
+    } else if (groupBy === 'day') {
+        tasks.forEach(t => {
+            const date = t.actualEnd ? t.actualEnd.split('T')[0] : (t.scheduledStart ? t.scheduledStart.split('T')[0] : 'Senza Data');
+            if(!groups[date]) groups[date] = [];
+            groups[date].push(t);
+        });
+    } else if (groupBy === 'location') {
+        tasks.forEach(t => {
+            const names = [ ...(t.familyIds||[]).map(x=>appCache.families[x]?.name), ...(t.organizationIds||[]).map(x=>appCache.organizations[x]?.name) ].filter(x=>x);
+            const loc = names.length > 0 ? names.join(', ') : 'Nessun Proprietario';
+            if(!groups[loc]) groups[loc] = [];
+            groups[loc].push(t);
+        });
+    }
+
+    let html = `<table style="width:100%; border-collapse:collapse; min-width:800px;">
+        <thead>
+            <tr style="background:var(--surface); border-bottom:2px solid var(--border); text-align:left;">
+                <th style="padding:10px;">Titolo</th>
+                <th style="padding:10px;" class="pivot-col col-start">Inizio</th>
+                <th style="padding:10px;" class="pivot-col col-end">Fine</th>
+                <th style="padding:10px;" class="pivot-col col-luogo">Luogo</th>
+                <th style="padding:10px;" class="pivot-col col-tech">Incaricato</th>
+                <th style="padding:10px; text-align:right;" class="pivot-col col-costo">Costo Lavoro</th>
+                <th style="padding:10px; text-align:center;">Azioni</th>
+            </tr>
+        </thead>
+        <tbody>
+    `;
+
+    let totalGlobalCost = 0;
+
+    Object.keys(groups).sort((a,b)=>b.localeCompare(a)).forEach(gName => {
+        const gTasks = groups[gName];
+        let groupCost = 0;
+        
+        let rowHtml = '';
+        gTasks.forEach(t => {
+            const cost = t.laborCost || 0;
+            groupCost += cost;
+            totalGlobalCost += cost;
+            
+            const startStr = t.actualStart ? new Date(t.actualStart).toLocaleString() : (t.scheduledStart ? new Date(t.scheduledStart).toLocaleDateString() : '-');
+            const endStr = t.actualEnd ? new Date(t.actualEnd).toLocaleString() : '-';
+            const names = [ ...(t.familyIds||[]).map(x=>appCache.families[x]?.name), ...(t.organizationIds||[]).map(x=>appCache.organizations[x]?.name) ].filter(x=>x);
+            const locName = names.length > 0 ? names.join(', ') : '-';
+            const workerName = appCache.people[t.assignedTo]?.name || appCache.people[t.assignedTo]?.fullName || '-';
+
+            rowHtml += `<tr style="border-bottom:1px solid #eee;">
+                <td style="padding:8px; font-weight:bold;">${t.title} <span class="status-badge status-${t.status}" style="font-size:0.7rem; padding:2px 4px;">${window.getStatusText(t.status)}</span></td>
+                <td style="padding:8px; font-size:0.85rem;" class="pivot-col col-start">${startStr}</td>
+                <td style="padding:8px; font-size:0.85rem;" class="pivot-col col-end">${endStr}</td>
+                <td style="padding:8px; font-size:0.85rem;" class="pivot-col col-luogo">${locName}</td>
+                <td style="padding:8px; font-size:0.85rem;" class="pivot-col col-tech">${workerName}</td>
+                <td style="padding:8px; text-align:right; color:var(--danger); font-weight:bold;" class="pivot-col col-costo">€${cost.toFixed(2)}</td>
+                <td style="padding:8px; text-align:center;">
+                    ${(() => {
+                        let actsHtml = `<button class="btn btn-outline" style="padding:4px 8px; font-size:0.8rem; margin:2px;" onclick="window.openTaskDetail('${t.id}')">Apri</button>`;
+                        const isTechAssigned = currentUser.roles.includes('technician') && t.assignedTo===currentUser.id;
+                        const isSuper = currentUser.roles.includes('admin') || currentUser.roles.includes('owner') || currentUser.roles.includes('management_control');
+                        
+                        if(t.status === 'assigned' && (isTechAssigned || isSuper)) {
+                            actsHtml += `<button class="btn btn-primary" style="padding:4px 8px; font-size:0.8rem; margin:2px;" onclick="window.execAction('START_TASK','${t.id}')">▶️ Inizia</button>`;
+                        } else if(t.status === 'in_progress' && (isTechAssigned || isSuper)) {
+                            actsHtml += `<button class="btn btn-success" style="padding:4px 8px; font-size:0.8rem; margin:2px;" onclick="window.execAction('COMP_TASK','${t.id}')">✔️ Fine</button>`;
+                        }
+
+                        if(t.status === 'completed') {
+                            actsHtml += `<button class="btn btn-primary" style="padding:4px 8px; font-size:0.8rem; margin:2px;" onclick="window.openCompleteTaskWizard('${t.id}')">€ Costi</button>`;
+                        } else {
+                            actsHtml += `<button class="btn btn-warning" style="padding:4px 8px; font-size:0.8rem; margin:2px; color:black;" onclick="window.openNewRequestWizard('${t.id}')">✏️ Mod</button>`;
+                        }
+                        
+                        actsHtml += `<button class="btn btn-danger" style="padding:4px 8px; font-size:0.8rem; margin:2px;" onclick="window.execAction('DEL_TASK','${t.id}')">🗑️ Canc</button>`;
+                        return actsHtml;
+                    })()}
+                </td>
+            </tr>`;
+        });
+
+        if(groupBy !== 'none') {
+            html += `<tr style="background:#f1f5f9; border-top:2px solid #cbd5e1; border-bottom:1px solid #cbd5e1;">
+                <td colspan="5" style="padding:10px; font-weight:bold; color:var(--primary);">📁 ${gName} (${gTasks.length} task)</td>
+                <td style="padding:10px; text-align:right; font-weight:bold; color:var(--danger);" class="pivot-col col-costo">€${groupCost.toFixed(2)}</td>
+                <td></td>
+            </tr>`;
+        }
+        html += rowHtml;
+    });
+
+    html += `</tbody>
+        <tfoot style="background:var(--surface); border-top:2px solid var(--border);">
+            <tr>
+                <td colspan="5" style="padding:12px; font-weight:800; text-align:right;">TOTALE GENERALE:</td>
+                <td style="padding:12px; font-weight:800; text-align:right; color:var(--danger);" class="pivot-col col-costo">€${totalGlobalCost.toFixed(2)}</td>
+                <td></td>
+            </tr>
+        </tfoot>
+    </table>`;
+
+    container.innerHTML = html;
+    
+    document.querySelectorAll('#pivotColumnsToggle input').forEach(cb => {
+        const cls = cb.getAttribute('onchange').match(/'([^']+)'/)[1];
+        window.pivotToggleCol(cls, cb.checked);
+    });
+};
+
+window.pivotToggleCol = (colClass, forcedState) => {
+    const cb = document.querySelector(`input[onchange*="${colClass}"]`);
+    const isVisible = forcedState !== undefined ? forcedState : (cb ? cb.checked : true);
+    document.querySelectorAll('.' + colClass).forEach(el => {
+        el.style.display = isVisible ? '' : 'none';
+    });
+};
+
