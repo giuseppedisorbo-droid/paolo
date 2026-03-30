@@ -135,6 +135,7 @@ body {
 .status-assigned { background: #e0e7ff; color: #4f46e5; }
 .status-in_progress { background: #dbeafe; color: #2563eb; }
 .status-completed { background: #d1fae5; color: #059669; }
+.status-accounted { background: #bfdbfe; color: #1d4ed8; }
 
 .entity-tags {
     display: flex;
@@ -283,7 +284,7 @@ label {
 /* FAB (Floating Action Button) */
 .fab {
     position: fixed;
-    bottom: 110px;
+    bottom: 80px;
     right: 20px;
     width: 56px;
     height: 56px;

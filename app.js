@@ -146,7 +146,7 @@ function renderHome() {
     const canSee = (item) => {
         if(isAdmin) return true;
         if(isSupervisor) {
-            if(item.status === 'pending_approval' || item.status === 'new') return true;
+            if(item.status === 'pending_approval' || item.status === 'new' || item.status === 'completed' || item.status === 'accounted') return true;
             if((item.familyIds||[]).includes('famiglia_teresa') || (item.familyIds||[]).includes('fam_teresa')) return true;
             if((item.organizationIds||[]).includes('eubios') || (item.organizationIds||[]).includes('org_eubios')) return true;
             return false;
@@ -171,16 +171,17 @@ function renderHome() {
     const getPriCounters = (filterType) => {
         let count = 0, newCount = 0;
         liveTasks.forEach(t => {
-            if(t.status === 'completed') return;
+            if((t.status === 'completed' || t.status === 'accounted') && filterType !== 'completed' && filterType !== 'accounted') return;
             if(!canSee(t)) return; // <-- Only count what user can see
             
             let match = false;
             if(filterType === 'all') match = true;
+            else if(filterType === 'completed') { if(t.status === 'completed') match = true; }
+            else if(filterType === 'accounted') { if(t.status === 'accounted') match = true; }
             else if(filterType === 'high') { if(t.priority==='high') match=true; }
             else if(filterType === 'medium') { if(t.priority==='medium' || !t.priority) match=true; }
             else if(filterType === 'low') { if(t.priority==='low') match=true; }
             else if(filterType === 'scheduled') { if(t.scheduledStart) match=true; }
-            else if(filterType === 'unscheduled') { if(!t.scheduledStart) match=true; }
             if(match) { count++; if(!(t.readBy||[]).includes(currentUser.id)) newCount++; }
         });
         return {count, newCount};
@@ -193,11 +194,12 @@ function renderHome() {
         {id:'medium', label:'Media Priorità', bg:'#d97706'},
         {id:'low', label:'Bassa Priorità', bg:'#2563eb'},
         {id:'scheduled', label:'Programmati', bg:'#0284c7'},
-        {id:'unscheduled', label:'Senza Data', bg:'#475569'},
+        {id:'completed', label:'Completati', bg:'#059669'},
+        {id:'accounted', label:'Contabilizzati', bg:'#3b82f6'}
     ];
     btns.forEach((b, i) => {
         const c = getPriCounters(b.id);
-        const span = (b.id === 'all' || b.id === 'unscheduled') ? `grid-column: 1 / -1;` : '';
+        const span = (b.id === 'all') ? `grid-column: 1 / -1;` : '';
         dashHtml += `<div onclick="window.openPivotModal('${b.id}')" class="shadow-sm" style="background:${b.bg}; color:white; padding:15px; border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; position:relative; ${span} transition:0.2s;" onmouseover="this.style.opacity=0.9" onmouseout="this.style.opacity=1">
             <div style="font-weight:bold; font-size:1.1rem; text-align:center;">${b.label}</div>
             <div style="font-size:1.8rem; font-weight:800; margin-top:5px;">${c.count}</div>
@@ -279,7 +281,7 @@ function renderHome() {
 
 window.taskCalendar = null;
 window.selectedAgendaDate = null;
-window.getStatusText = (s) => s === 'assigned' ? 'APPROVATO' : (s === 'pending_approval' ? 'DA APPROVARE' : (s === 'in_progress' ? 'IN CORSO' : (s === 'completed' ? 'COMPLETATO' : s.toUpperCase())));
+window.getStatusText = (s) => s === 'assigned' ? 'APPROVATO' : (s === 'pending_approval' ? 'DA APPROVARE' : (s === 'in_progress' ? 'IN CORSO' : (s === 'completed' ? 'COMPLETATO' : (s === 'accounted' ? 'CONTABILIZZATO' : s.toUpperCase()))));
 
 window.filterAgendaList = (dateStr) => {
     window.selectedAgendaDate = dateStr;
@@ -462,13 +464,13 @@ function renderFinance() {
             const bal = cList.length > 0 ? cList[0].balanceAfter : 0;
             h += `<div class="card flex-between" style="align-items:center;"><div><strong>${w.fullName}</strong><div style="font-size:1.2rem; color:${bal<0?'var(--danger)':'var(--success)'}; font-weight:bold;">€ ${bal.toFixed(2)}</div></div> <button class="btn btn-info" style="width:auto; padding:8px 15px;" onclick="window.topUpWallet('${w.id}')">Ricarica Fondo</button></div>`;
         });
-        h += `<h3 class="mt-4">Spese da Verificare & Allocare</h3>`;
+        h += `<h3 class="mt-4">Gestione Tutte le Spese</h3>`;
         
         const isDomainAppr = currentUser.roles.includes('domain_approver');
         const myFam = [...(currentUser.familyIds||[]), ...(currentUser.familyIds||[]).map(f=>f.replace('famiglia_','fam_'))];
         const myOrgs = (currentUser.organizationRoles||[]).map(x=>x.organizationId);
 
-        let unalloc = liveExpenses.filter(e => e.status === 'pending_approval' || !e.allocations || e.allocations.length === 0);
+        let unalloc = liveExpenses;
         
         if(isDomainAppr) {
             unalloc = unalloc.filter(e => {
@@ -481,28 +483,42 @@ function renderFinance() {
             });
         }
         
-        if(unalloc.length === 0) h += `<p class="text-muted text-center">Tutto in regola.</p>`;
+        // Ordina per data creazione per avere le ultime
+        unalloc.sort((a,b) => (b.createdAt?.seconds||0) - (a.createdAt?.seconds||0));
+
+        if(unalloc.length === 0) h += `<p class="text-muted text-center">Nessuna spesa nel database.</p>`;
         unalloc.forEach(e => {
-            h += `<div class="card" style="border-left: 4px solid var(--primary)">
+            const isAlloc = e.allocations && e.allocations.length > 0;
+            const badge = e.status === 'pending_approval' ? `<span class="status-badge" style="background:var(--warning); color:white;">⏳ DA APPROVARE</span>` : (isAlloc ? `<span class="status-badge status-completed">ALLOCATA</span>` : `<span class="status-badge status-new">DA ALLOCARE</span>`);
+            h += `<div class="card" style="border-left: 4px solid ${isAlloc?'var(--success)':'var(--primary)'}">
                 <div class="flex-between">
                     <strong>€ ${e.amount.toFixed(2)}</strong>
-                    ${(e.status==='pending_approval') ? `<span class="status-badge" style="background:var(--warning); color:white;">⏳ DA APPROVARE</span>` : `<span class="status-badge status-new">DA ALLOCARE</span>`}
+                    ${badge}
                 </div>
                 <div class="card-meta mt-2">Da: ${appCache.people[e.paidBy]?.shortName || e.paidBy} | ${e.description}</div>
-                                ${!e.receiptUrl ? `<div class="mt-2"><span class="status-badge" style="background:#fee2e2; color:#b91c1c;">⚠️ NESSUN SCONTRINO</span></div>` : `<div class="mt-2"><span class="status-badge" style="background:#d1fae5; color:#059669;">🧾 SCONTRINO OK</span></div>`}
+                                ${(e.status==='pending_approval')?'':(!e.receiptUrl ? `<div class="mt-2"><span class="status-badge" style="background:#fee2e2; color:#b91c1c;">⚠️ NESSUN SCONTRINO</span></div>` : `<div class="mt-2"><span class="status-badge" style="background:#d1fae5; color:#059669;">🧾 SCONTRINO OK</span></div>`)}
                 <div class="mt-2" style="display:flex; gap:10px;">
-                    <button class="btn btn-primary" style="flex:2;" onclick="window.openAllocationWizard('${e.id}', 'expenses')">Verifica & Ripartisci</button>
+                    ${!isAlloc ? `<button class="btn btn-primary" style="flex:2;" onclick="window.openAllocationWizard('${e.id}', 'expenses')">Ripartisci</button>` : `<button class="btn btn-secondary" style="flex:2;" onclick="window.openAllocationWizard('${e.id}', 'expenses')">Rivedi</button>`}
                     <button class="btn btn-outline" style="flex:1; padding:8px;" onclick="window.editExpense('${e.id}')">✏️</button>
                     <button class="btn btn-danger btn-outline" style="flex:1; padding:8px;" onclick="window.deleteExpense('${e.id}', false)">🗑️</button>
                 </div>
             </div>`;
         });
-        h += `<h3 class="mt-4">Giornate Manovali da Allocare</h3>`;
-        const unallocW = liveWorkSessions.filter(w => !w.allocations || w.allocations.length === 0);
-        if(unallocW.length === 0) h += `<p class="text-muted text-center">Tutti i manovali sono stati allocati.</p>`;
+        h += `<h3 class="mt-4">Gestione Manovalanza</h3>`;
+        const unallocW = liveWorkSessions.sort((a,b) => new Date(b.date||0) - new Date(a.date||0));
+        if(unallocW.length === 0) h += `<p class="text-muted text-center">Nessuna manovalanza.</p>`;
         unallocW.forEach(w => {
             const wName = appCache.external_workers[w.workerId]?.fullName || w.workerId.toUpperCase();
-            h += `<div class="card" style="border-left: 4px solid var(--primary)"><div class="flex-between"><strong>€ ${w.totalCost.toFixed(2)}</strong><span class="status-badge status-new">DA ALLOCARE</span></div><div class="card-meta mt-2">Manovale: <strong>${wName}</strong> | In Data: ${w.date}</div><button class="btn btn-primary mt-2" onclick="window.openAllocationWizard('${w.id}', 'work_sessions')">Verifica & Ripartisci Costo</button></div>`;
+            const isAlloc = w.allocations && w.allocations.length > 0;
+            h += `<div class="card" style="border-left: 4px solid ${isAlloc?'var(--success)':'var(--primary)'}">
+                <div class="flex-between"><strong>€ ${w.totalCost.toFixed(2)}</strong><span class="status-badge ${isAlloc?'status-completed':'status-new'}">${isAlloc?'ALLOCATO':'DA ALLOCARE'}</span></div>
+                <div class="card-meta mt-2">Manovale: <strong>${wName}</strong> | In Data: ${w.date}</div>
+                <div class="mt-2" style="display:flex; gap:10px;">
+                    ${!isAlloc ? `<button class="btn btn-primary" style="flex:2;" onclick="window.openAllocationWizard('${w.id}', 'work_sessions')">Ripartisci</button>`:`<button class="btn btn-secondary" style="flex:2;" onclick="window.openAllocationWizard('${w.id}', 'work_sessions')">Rivedi</button>`}
+                    <button class="btn btn-outline" style="flex:1; padding:8px;" onclick="window.editWorkSession('${w.id}')">✏️</button>
+                    <button class="btn btn-danger btn-outline" style="flex:1; padding:8px;" onclick="window.deleteWorkSession('${w.id}')">🗑️</button>
+                </div>
+            </div>`;
         });
         fl.innerHTML = h;
     }
@@ -741,6 +757,7 @@ window.openTaskDetail = async (taskId) => {
 window.execAction = async (act, id) => {
     const bd = document.getElementById('bsBackdrop'); if(bd) bd.classList.remove('open');
     if(act==='APPROVE_PROPOSED') { const t=liveTasks.find(x=>x.id===id); await updateDoc(doc(db,"tasks",id),{status:'assigned', scheduledStart: new Date().toISOString()}); await logActivity('APPROVE_PROPOSED','task',id); sendNotification(t.assignedTo, 'Proposta Approvata', `${currentUser.fullName} ha approvato: ${t.title}`); return; }
+    else if(act==='ACCOUNT_TASK') { await updateDoc(doc(db,"tasks",id),{status:'accounted'}); await logActivity('ACCOUNT_TASK','task',id); const t=liveTasks.find(x=>x.id===id); if(t) t.status='accounted'; window.renderPivotTable(document.getElementById('pivotGroupSelect').value); return; }
     else if(act==='START_TASK') { await updateDoc(doc(db,"tasks",id),{status:'in_progress', actualStart: new Date().toISOString()}); await logActivity('START_TASK','task',id); }
     else if(act==='COMP_TASK') { window.openCompleteTaskWizard(id); return; }
     else if(act==='DEL_TASK') { 
@@ -1493,7 +1510,7 @@ window.openPivotModal = (filterType) => {
     const canSee = (item) => {
         if(isAdmin) return true;
         if(isSupervisor) {
-            if(item.status === 'pending_approval' || item.status === 'new') return true;
+            if(item.status === 'pending_approval' || item.status === 'new' || item.status === 'completed' || item.status === 'accounted') return true;
             if((item.familyIds||[]).includes('famiglia_teresa') || (item.familyIds||[]).includes('fam_teresa')) return true;
             if((item.organizationIds||[]).includes('eubios') || (item.organizationIds||[]).includes('org_eubios')) return true;
             return false;
@@ -1521,45 +1538,100 @@ window.openPivotModal = (filterType) => {
         let match = false;
         if(filterType === 'all') match = true;
         else if (filterType === 'completed') { if(t.status === 'completed') match = true; }
-        else if (filterType === 'today') { if(t.status==='completed' && t.actualEnd && t.actualEnd.startsWith(todayIso)) match=true; }
-        else if (filterType === 'week') { if(t.status==='completed' && t.actualEnd && new Date(t.actualEnd) >= wD) match=true; }
-        else if (filterType === 'month') { if(t.status==='completed' && t.actualEnd && new Date(t.actualEnd) >= mD) match=true; }
-        else if (filterType === 'year') { if(t.status==='completed' && t.actualEnd && t.actualEnd.startsWith(currY)) match=true; }
-        else if(t.status !== 'completed') {
+        else if (filterType === 'accounted') { if(t.status === 'accounted') match = true; }
+        else if (filterType === 'today') { if((t.status==='completed'||t.status==='accounted') && t.actualEnd && t.actualEnd.startsWith(todayIso)) match=true; }
+        else if (filterType === 'week') { if((t.status==='completed'||t.status==='accounted') && t.actualEnd && new Date(t.actualEnd) >= wD) match=true; }
+        else if (filterType === 'month') { if((t.status==='completed'||t.status==='accounted') && t.actualEnd && new Date(t.actualEnd) >= mD) match=true; }
+        else if (filterType === 'year') { if((t.status==='completed'||t.status==='accounted') && t.actualEnd && t.actualEnd.startsWith(currY)) match=true; }
+        else if(t.status !== 'completed' && t.status !== 'accounted') {
             if(filterType === 'high') { if(t.priority==='high') match=true; }
             else if(filterType === 'medium') { if(t.priority==='medium' || !t.priority) match=true; }
             else if(filterType === 'low') { if(t.priority==='low') match=true; }
             else if(filterType === 'scheduled') { if(t.scheduledStart) match=true; }
-            else if(filterType === 'unscheduled') { if(!t.scheduledStart) match=true; }
         }
         if(match) tasks.push(t);
     });
 
     const labels = {
         'high': 'Alta Priorità', 'medium': 'Media Priorità', 'low': 'Bassa Priorità',
-        'scheduled': 'Programmati', 'unscheduled': 'Senza Data', 'all': 'Tutti i Task', 'completed': 'Tutti Completati',
-        'today': 'Completati Oggi', 'week': 'Complessivi (7gg)', 'month': 'Mensilità', 'year': "Quest'Anno"
+        'scheduled': 'Programmati', 'all': 'Tutti i Task', 'completed': 'Tutti Completati', 'accounted': 'Contabilizzati',
+        'today': 'Completati/Contab. Oggi', 'week': 'Complessivi (7gg)', 'month': 'Mensilità', 'year': "Quest'Anno"
     };
-    document.getElementById('pivotTitle').textContent = `Pivot: ${labels[filterType] || filterType} (${tasks.length})`;
+    document.getElementById('pivotTitle').textContent = `Pivot: ${labels[filterType] || filterType}`;
     document.getElementById('pivotModal').classList.add('open');
     
-    window.currentPivotTasks = tasks;
-    window.renderPivotTable('none');
+    window.originalPivotTasks = tasks;
+    window.renderPivotTable('none', 'all');
 };
 
-window.renderPivotTable = (groupBy = 'none') => {
-    const tasks = window.currentPivotTasks || [];
+window.renderPivotTable = (groupBy = 'none', dateFilter = null) => {
+    if (dateFilter !== null) window.currentPivotDateFilter = dateFilter;
+    else dateFilter = window.currentPivotDateFilter || 'all';
+
+    let tasks = window.originalPivotTasks || [];
+    
+    if(dateFilter !== 'all') {
+        const todayIso = new Date().toISOString().split('T')[0];
+        const wD = new Date(); wD.setDate(wD.getDate()-7);
+        const mD = new Date(); mD.setMonth(mD.getMonth()-1);
+        const currY = new Date().getFullYear().toString();
+        
+        let customStart = null, customEnd = null;
+        if(dateFilter === 'custom') {
+            const sd = document.getElementById('pivotStartDt')?.value;
+            const ed = document.getElementById('pivotEndDt')?.value;
+            if(sd) customStart = new Date(sd);
+            if(ed) { customEnd = new Date(ed); customEnd.setHours(23,59,59); }
+        }
+
+        tasks = tasks.filter(t => {
+            const dtField = t.actualEnd || t.scheduledStart;
+            if(!dtField) return false;
+            const d = new Date(dtField);
+            if(dateFilter === 'today') return dtField.startsWith(todayIso);
+            if(dateFilter === 'week') return d >= wD;
+            if(dateFilter === 'month') return d >= mD;
+            if(dateFilter === 'year') return dtField.startsWith(currY);
+            if(dateFilter === 'custom') {
+                if(customStart && d < customStart) return false;
+                if(customEnd && d > customEnd) return false;
+                return true;
+            }
+            return true;
+        });
+    }
+
+    window.currentPivotTasks = tasks; // Update for rendering
+
     const container = document.getElementById('pivotContainer');
     const controls = document.getElementById('pivotControls');
 
     controls.innerHTML = `
-        <div>
-            <strong>Raggruppa per:</strong>
-            <select id="pivotGroupSelect" onchange="window.renderPivotTable(this.value)" style="padding:5px; border-radius:4px; margin-left:10px;">
-                <option value="none" ${groupBy==='none'?'selected':''}>Nessuno</option>
-                <option value="day" ${groupBy==='day'?'selected':''}>Giorno (Completamento o Atteso)</option>
-                <option value="location" ${groupBy==='location'?'selected':''}>Proprietario / Luogo</option>
-            </select>
+        <div style="display:flex; gap:15px; align-items:center;">
+            <div>
+                <strong>Filtra Data:</strong>
+                <select id="pivotDateFilter" onchange="window.renderPivotTable(document.getElementById('pivotGroupSelect').value, this.value)" style="padding:5px; border-radius:4px; margin-left:5px;">
+                    <option value="all" ${dateFilter==='all'?'selected':''}>Qualsiasi Data</option>
+                    <option value="today" ${dateFilter==='today'?'selected':''}>Oggi</option>
+                    <option value="week" ${dateFilter==='week'?'selected':''}>Ultimi 7 gg</option>
+                    <option value="month" ${dateFilter==='month'?'selected':''}>Questo Mese</option>
+                    <option value="year" ${dateFilter==='year'?'selected':''}>Quest'Anno</option>
+                    <option value="custom" ${dateFilter==='custom'?'selected':''}>Personalizzata...</option>
+                </select>
+            </div>
+            <div id="pivotCustomDateDiv" style="display:${dateFilter==='custom'?'flex':'none'}; gap:5px; align-items:center;">
+                <input type="date" id="pivotStartDt" style="padding:4px; margin:0; border-radius:4px;" value="${document.getElementById('pivotStartDt')?.value||''}">
+                <input type="date" id="pivotEndDt" style="padding:4px; margin:0; border-radius:4px;" value="${document.getElementById('pivotEndDt')?.value||''}">
+                <button class="btn btn-secondary" style="padding:4px 8px; font-size:0.8rem; width:auto; border-radius:4px;" onclick="window.renderPivotTable(document.getElementById('pivotGroupSelect').value, 'custom')">Applica</button>
+            </div>
+            <div>
+                <strong>Raggruppa:</strong>
+                <select id="pivotGroupSelect" onchange="window.renderPivotTable(this.value, document.getElementById('pivotDateFilter').value)" style="padding:5px; border-radius:4px; margin-left:5px;">
+                    <option value="none" ${groupBy==='none'?'selected':''}>Nessuno</option>
+                    <option value="day" ${groupBy==='day'?'selected':''}>Giorno</option>
+                    <option value="location" ${groupBy==='location'?'selected':''}>Proprietario</option>
+                </select>
+            </div>
         </div>
         <div style="flex:1;"></div>
         <div style="display:flex; gap:10px; font-size:0.85rem;" id="pivotColumnsToggle">
@@ -1641,12 +1713,16 @@ window.renderPivotTable = (groupBy = 'none') => {
                             actsHtml += `<button class="btn btn-success" style="padding:4px 8px; font-size:0.8rem; margin:2px;" onclick="window.execAction('COMP_TASK','${t.id}')">✔️ Fine</button>`;
                         }
 
-                        if(t.status === 'completed') {
+                        if(t.status === 'completed' || t.status === 'accounted') {
                             actsHtml += `<button class="btn btn-primary" style="padding:4px 8px; font-size:0.8rem; margin:2px;" onclick="window.openCompleteTaskWizard('${t.id}')">€ Costi</button>`;
                         } else {
                             actsHtml += `<button class="btn btn-warning" style="padding:4px 8px; font-size:0.8rem; margin:2px; color:black;" onclick="window.openNewRequestWizard('${t.id}')">✏️ Mod</button>`;
                         }
                         
+                        if(t.status === 'completed' && isSuper) {
+                            actsHtml += `<button class="btn btn-success" style="padding:4px 8px; font-size:0.8rem; margin:2px;" onclick="window.execAction('ACCOUNT_TASK','${t.id}')">🆗 Contabilizza</button>`;
+                        }
+
                         actsHtml += `<button class="btn btn-danger" style="padding:4px 8px; font-size:0.8rem; margin:2px;" onclick="window.execAction('DEL_TASK','${t.id}')">🗑️ Canc</button>`;
                         return actsHtml;
                     })()}
