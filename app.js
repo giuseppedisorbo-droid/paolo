@@ -458,6 +458,19 @@ function renderFinance() {
             btns += `<button style="background:none;border:none;cursor:pointer;font-size:1.1rem;padding:0 5px;" onclick="window.deleteCashMovement('${c.id}')">🗑️</button></span>`;
             h+=`<li class="flex-between" style="padding:12px 0; border-bottom:1px solid var(--border); align-items:center;"><div><span style="font-weight:500;">${c.reason||c.type}</span>${btns}</div> <strong style="color:${p?'var(--success)':'var(--danger)'}">${p?'+':'-'}€${c.amount.toFixed(2)}</strong></li>`
         });
+        
+        h += `</ul><h3 class="mt-4">Storico Manovalanza (Da Me Inserita)</h3><ul style="list-style:none; padding:10px 0;">`;
+        liveWorkSessions.filter(w=>w.assignedBy===currentUser.id).sort((a,b)=>new Date(b.date||0) - new Date(a.date||0)).forEach(w => {
+            const wName = appCache.external_workers[w.workerId]?.fullName || w.workerId.toUpperCase();
+            h += `<li class="card mb-2" style="border-left:4px solid var(--info)">
+                    <div class="flex-between"><strong>${wName}</strong> <strong>€${(w.totalCost||w.cost||0).toFixed(2)}</strong></div>
+                    <div class="text-muted" style="font-size:0.8rem; margin-top:5px;">Data: ${w.date}</div>
+                    <div class="mt-2 text-right">
+                        <button class="btn btn-outline" style="padding:4px 8px; font-size:0.8rem;" onclick="window.editWorkSession('${w.id}')">✏️ Modifica</button>
+                        <button class="btn btn-danger btn-outline" style="padding:4px 8px; font-size:0.8rem;" onclick="window.deleteWorkSession('${w.id}')">🗑️ Elimina</button>
+                    </div>
+                  </li>`;
+        });
         fl.innerHTML = h+`</ul><button class="btn btn-primary mt-4 mb-4" onclick="window.openExpenseWizard()">➕ Aggiungi Spesa (Preleva da Cassa)</button>`;
     }
     if(isSuper) {
@@ -852,7 +865,7 @@ window.openTaskDetail = async (taskId) => {
     else acts = `<button class="btn btn-info mb-2" style="width:100%; color:white; background:var(--primary);" onclick="window.openCompleteTaskWizard('${t.id}')">✏️ Modifica Consuntivo Costo</button>` + acts;
     acts += `<button class="btn btn-danger btn-outline mt-4" onclick="window.execAction('DEL_TASK','${t.id}')">🗑️ Elimina</button>`;
 
-    const wv = liveWorkSessions.filter(w=>w.taskId===taskId);
+    const wv = liveWorkSessions.filter(w=>w.taskId===taskId || (w.tasks && w.tasks.includes(taskId)));
     const wrkHtml = wv.length===0?'<div class="text-muted" style="font-size:0.85rem;">Nessuna manovalanza.</div>':wv.map(w=>`<div class="flex-between" style="margin-top:5px; border-top:1px dashed #eee; padding-top:5px;"><span>${w.date ? `<span style="color:var(--primary);font-size:0.8rem;margin-right:5px">[${w.date}]</span>` : ''}${appCache.external_workers[w.workerId]?.fullName||w.workerId}</span><strong>€${(w.cost||w.totalCost||0).toFixed(2)}</strong></div><div style="font-size:0.75rem; color:var(--text-muted)">${(w.allocations||[]).map(a=>`${appCache.organizations[a.entityId]?.name || appCache.families[a.entityId]?.name || a.entityId}(${a.percentage.toFixed(0)}%)`).join(', ')}</div><div class="mt-1" style="text-align:right;"><button class="btn btn-outline" style="padding:4px 8px; font-size:0.75rem; margin-right:5px;" onclick="window.editWorkSession('${w.id}')">✏️ Modifica</button><button class="btn btn-danger btn-outline" style="padding:4px 8px; font-size:0.75rem;" onclick="window.deleteWorkSession('${w.id}')">🗑️ Elimina</button></div>`).join('');
     
     let prioBadge = '';
@@ -1546,7 +1559,8 @@ window.deleteWorkSession = async (id) => {
     if(!confirm("Vuoi annullare questa sessione di lavoro e stornare il costo?")) return;
     try {
         await deleteDoc(doc(db, "work_sessions", id));
-        document.getElementById('taskDetailModal').classList.remove('open');
+        const m = document.getElementById('taskDetailModal');
+        if(m) m.classList.remove('open');
         renderReport();
         renderFinance();
     } catch(e) { alert("Errore durante l'eliminazione."); }
@@ -1555,14 +1569,16 @@ window.deleteWorkSession = async (id) => {
 window.editWorkSession = async (id) => {
     const ws = liveWorkSessions.find(x => x.id === id);
     if(!ws) return;
-    const nCost = prompt("Nuovo Costo Totale da imputare al Manovale (€):", ws.cost || 0);
+    const currCost = ws.totalCost !== undefined ? ws.totalCost : (ws.cost || 0);
+    const nCost = prompt("Nuovo Costo Totale da imputare al Manovale (€):", currCost);
     if(nCost === null) return;
     const nCostFloat = parseFloat(nCost);
     if(isNaN(nCostFloat) || nCostFloat < 0) { alert("Importo non valido"); return; }
     
     try {
-        await updateDoc(doc(db, "work_sessions", id), { cost: nCostFloat });
-        document.getElementById('taskDetailModal').classList.remove('open');
+        await updateDoc(doc(db, "work_sessions", id), { cost: nCostFloat, totalCost: nCostFloat });
+        const m = document.getElementById('taskDetailModal');
+        if(m) m.classList.remove('open');
         renderReport();
         renderFinance();
     } catch(e) { alert("Errore durante la modifica."); }
