@@ -101,12 +101,14 @@ function boot() {
         nav = `<button class="nav-item active" data-target="view-home" data-title="Oggi">${ICONS.home}<span>Oggi</span></button>
                <button class="nav-item" data-target="view-agenda" data-title="Agenda">${ICONS.agenda}<span>Agenda</span></button>
                <button class="nav-item" data-target="view-finance" data-title="Cassa">${ICONS.finance}<span>Cassa</span></button>
-               <button class="nav-item" data-target="view-directory" data-title="Rubrica">${ICONS.directory}<span>Rubrica</span></button>`;
+               <button class="nav-item" data-target="view-directory" data-title="Rubrica">${ICONS.directory}<span>Rubrica</span></button>
+               <button class="nav-item" data-target="view-report" data-title="Report">${ICONS.report}<span>Report</span></button>`;
         document.getElementById('headerWallet').classList.remove('hidden');
     } else {
         nav = `<button class="nav-item active" data-target="view-home" data-title="Le Mie Richieste">${ICONS.home}<span>Home</span></button>
                <button class="nav-item" data-target="view-agenda" data-title="Agenda">${ICONS.agenda}<span>Agenda</span></button>
-               <button class="nav-item" data-target="view-directory" data-title="Proprietà">${ICONS.directory}<span>Proprietà</span></button>`;
+               <button class="nav-item" data-target="view-directory" data-title="Proprietà">${ICONS.directory}<span>Proprietà</span></button>
+               <button class="nav-item" data-target="view-report" data-title="Report">${ICONS.report}<span>Report</span></button>`;
     }
     document.getElementById('bottomNav').innerHTML = nav;
 
@@ -437,7 +439,7 @@ function renderFinance() {
         pend.forEach(e => {
             h += `<div class="card" style="border-left: 4px solid var(--warning)">
                 <div class="flex-between"><strong>€ ${e.amount.toFixed(2)}</strong> <span class="status-badge" style="background:var(--warning); color:white;">⏳ IN ATTESA</span></div>
-                <div class="card-meta mt-2">${e.description}</div>
+                <div class="card-meta mt-2">${e.dateStr ? `<strong style="color:var(--primary);">[${e.dateStr}]</strong> ` : ''}${e.description}</div>
                                 ${!e.receiptUrl ? `<div class="mt-2"><span class="status-badge" style="background:#fee2e2; color:#b91c1c;">⚠️ MANCA SCONTRINO</span></div><button class="btn btn-secondary mt-2" onclick="window.attachReceipt('${e.id}')">📷 Fai Foto Scontrino</button>` : `<div class="mt-2"><span class="status-badge" style="background:#d1fae5; color:#059669;">🧾 SCONTRINO OK</span></div>`}
                 <div class="mt-2" style="display:flex; gap:10px;">
                     <button class="btn btn-outline" style="flex:1; padding:8px;" onclick="window.editExpense('${e.id}')">✏️ Modifica</button>
@@ -449,10 +451,11 @@ function renderFinance() {
         h += `<h3 class="mt-4">Storico Cassa</h3><ul style="list-style:none; padding:10px 0;">`;
         liveCash.filter(c=>c.givenTo===currentUser.id).sort((a,b)=>b.createdAt-a.createdAt).forEach(c=> { 
             const p=c.type==='advance'||c.type==='reimbursement'||c.type==='adjustment'; 
-            let btns = '';
+            let btns = `<span style="margin-left:8px;">`;
             if(c.relatedExpenseId) {
-                btns = `<span style="margin-left:8px;"><button style="background:none;border:none;cursor:pointer;font-size:1.1rem;padding:0 5px;" onclick="window.editExpense('${c.relatedExpenseId}')">✏️</button><button style="background:none;border:none;cursor:pointer;font-size:1.1rem;padding:0 5px;" onclick="window.deleteExpense('${c.relatedExpenseId}', true)">🗑️</button></span>`;
+                btns += `<button style="background:none;border:none;cursor:pointer;font-size:1.1rem;padding:0 5px;" onclick="window.editExpense('${c.relatedExpenseId}')">✏️</button>`;
             }
+            btns += `<button style="background:none;border:none;cursor:pointer;font-size:1.1rem;padding:0 5px;" onclick="window.deleteCashMovement('${c.id}')">🗑️</button></span>`;
             h+=`<li class="flex-between" style="padding:12px 0; border-bottom:1px solid var(--border); align-items:center;"><div><span style="font-weight:500;">${c.reason||c.type}</span>${btns}</div> <strong style="color:${p?'var(--success)':'var(--danger)'}">${p?'+':'-'}€${c.amount.toFixed(2)}</strong></li>`
         });
         fl.innerHTML = h+`</ul><button class="btn btn-primary mt-4 mb-4" onclick="window.openExpenseWizard()">➕ Aggiungi Spesa (Preleva da Cassa)</button>`;
@@ -495,7 +498,7 @@ function renderFinance() {
                     <strong>€ ${e.amount.toFixed(2)}</strong>
                     ${badge}
                 </div>
-                <div class="card-meta mt-2">Da: ${appCache.people[e.paidBy]?.shortName || e.paidBy} | ${e.description}</div>
+                <div class="card-meta mt-2">Da: ${appCache.people[e.paidBy]?.shortName || e.paidBy} | ${e.dateStr ? `<strong style="color:var(--primary);">[${e.dateStr}]</strong> ` : ''}${e.description}</div>
                                 ${(e.status==='pending_approval')?'':(!e.receiptUrl ? `<div class="mt-2"><span class="status-badge" style="background:#fee2e2; color:#b91c1c;">⚠️ NESSUN SCONTRINO</span></div>` : `<div class="mt-2"><span class="status-badge" style="background:#d1fae5; color:#059669;">🧾 SCONTRINO OK</span></div>`)}
                 <div class="mt-2" style="display:flex; gap:10px;">
                     ${!isAlloc ? `<button class="btn btn-primary" style="flex:2;" onclick="window.openAllocationWizard('${e.id}', 'expenses')">Ripartisci</button>` : `<button class="btn btn-secondary" style="flex:2;" onclick="window.openAllocationWizard('${e.id}', 'expenses')">Rivedi</button>`}
@@ -585,6 +588,49 @@ window.deleteLaborRate = async (id) => {
     }
 };
 
+window.addExternalWorker = async () => {
+    const fullName = prompt("Inserisci il Nome e Cognome del manovale:");
+    if(!fullName || !fullName.trim()) return;
+    const rate = prompt("Inserisci la tariffa giornaliera concordata (€/giorno):", "80");
+    if(!rate || isNaN(rate)) return;
+    try {
+        const payload = { fullName: fullName.trim(), dailyRate: parseFloat(rate), active: true, roles: ['external_worker'] };
+        const docRef = await addDoc(collection(db, 'external_workers'), payload);
+        appCache['external_workers'][docRef.id] = { id: docRef.id, ...payload };
+        renderDirectory();
+    } catch(e) {
+        alert("Errore salvataggio: " + e.message);
+    }
+};
+
+window.editExternalWorker = async (id) => {
+    const w = appCache['external_workers'][id];
+    if(!w) return;
+    const fullName = prompt("Modifica Nome Manovale:", w.fullName);
+    if(!fullName || !fullName.trim()) return;
+    const rate = prompt("Modifica Tariffa Giornaliera (€/g):", w.dailyRate);
+    if(!rate || isNaN(rate)) return;
+    try {
+        await updateDoc(doc(db, 'external_workers', id), { fullName: fullName.trim(), dailyRate: parseFloat(rate) });
+        w.fullName = fullName.trim();
+        w.dailyRate = parseFloat(rate);
+        renderDirectory();
+    } catch(e) {
+        alert("Errore modifica: " + e.message);
+    }
+};
+
+window.deleteExternalWorker = async (id) => {
+    if(!confirm("Sicuro di eliminare questo manovale? (Non comparirà più nelle liste, ma i report pregressi saranno salvi)")) return;
+    try {
+        await updateDoc(doc(db, 'external_workers', id), { active: false });
+        appCache['external_workers'][id].active = false;
+        renderDirectory();
+    } catch(e) {
+        alert("Errore eliminazione: " + e.message);
+    }
+};
+
 function renderDirectory() {
     const d = document.getElementById('directoryList'); d.innerHTML='';
     const sections = [
@@ -620,8 +666,75 @@ function renderDirectory() {
         </div>
     </div>`;
 
+    // External Workers Section
+    const workers = Object.values(appCache['external_workers']).filter(w => w.active !== false).sort((a,b)=>(a.fullName||'').localeCompare(b.fullName||''));
+    html += `<div class="card mb-3" style="padding:0; overflow:hidden;">
+        <div class="card-header" style="margin:0; padding:15px; background:var(--surface); cursor:pointer; border-bottom:1px solid var(--border);" onclick="window.toggleDirSection('external_workers')">
+            <h3 style="margin:0; font-size:1.1rem; color:var(--info);">Anagrafica Manovali (${workers.length}) <span>▼</span></h3>
+        </div>
+        <div id="dir_sec_external_workers" style="display:none; padding:15px; background:var(--bg);">
+            <button class="btn btn-outline mb-3" onclick="window.addExternalWorker()" style="padding:8px; font-size:0.9rem;">➕ Aggiungi Manovale</button>
+            ${workers.map(w => `<div class="flex-between" style="padding:8px 0; border-bottom:1px dashed #ccc;"><strong style="font-size:0.95rem;">${w.fullName}</strong><div><span style="margin-right:15px; color:var(--text-muted);">€${(w.dailyRate||0).toFixed(2)}/g</span><button style="background:none; border:none; cursor:pointer;" onclick="window.editExternalWorker('${w.id}')">✏️</button><button style="background:none; border:none; cursor:pointer; margin-left:10px;" onclick="window.deleteExternalWorker('${w.id}')">🗑️</button></div></div>`).join('')}
+            ${workers.length===0 ? '<div class="text-muted">Nessun manovale attivo.</div>' : ''}
+        </div>
+    </div>`;
+
     d.innerHTML = html;
 }
+
+window.updateWorkerDetailReport = () => {
+    const sel = document.getElementById('workerDetailSelect');
+    if(!sel) return;
+    const wId = sel.value;
+    const res = document.getElementById('workerDetailResults');
+    if(!res) return;
+    
+    let costs = { day: 0, week: 0, month: 0, year: 0 };
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    
+    const getWeekNum = (d) => {
+        const date = new Date(d);
+        date.setUTCDate(date.getUTCDate() + 4 - (date.getUTCDay()||7));
+        const yearStart = new Date(Date.UTC(date.getUTCFullYear(),0,1));
+        return Math.ceil(( ( (date - yearStart) / 86400000) + 1)/7);
+    };
+    const currentWeek = getWeekNum(now);
+    const currentMonth = today.substring(0,7);
+    const currentYear = today.split('-')[0];
+
+    liveWorkSessions.forEach(w => {
+        if(wId !== 'all' && w.workerId !== wId) return;
+        if(!w.date) return;
+        
+        const amt = parseFloat(w.totalCost||w.cost||0);
+        if(w.date === today) costs.day += amt;
+        if(getWeekNum(w.date) === currentWeek && w.date.startsWith(currentYear)) costs.week += amt;
+        if(w.date.startsWith(currentMonth)) costs.month += amt;
+        if(w.date.startsWith(currentYear)) costs.year += amt;
+    });
+
+    res.innerHTML = `
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <div class="card" style="padding:15px 10px; text-align:center; background:var(--surface);">
+                <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:5px;">Oggi</div>
+                <div style="font-size:1.3rem; font-weight:bold; color:var(--info);">€ ${costs.day.toFixed(2)}</div>
+            </div>
+            <div class="card" style="padding:15px 10px; text-align:center; background:var(--surface);">
+                <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:5px;">Questa Settimana</div>
+                <div style="font-size:1.3rem; font-weight:bold; color:var(--info);">€ ${costs.week.toFixed(2)}</div>
+            </div>
+            <div class="card" style="padding:15px 10px; text-align:center; background:var(--surface);">
+                <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:5px;">Questo Mese</div>
+                <div style="font-size:1.3rem; font-weight:bold; color:var(--info);">€ ${costs.month.toFixed(2)}</div>
+            </div>
+            <div class="card" style="padding:15px 10px; text-align:center; background:var(--surface);">
+                <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:5px;">Quest'Anno</div>
+                <div style="font-size:1.3rem; font-weight:bold; color:var(--info);">€ ${costs.year.toFixed(2)}</div>
+            </div>
+        </div>
+    `;
+};
 
 function renderReport() {
     const rep = document.getElementById('reportContent'); if(!rep) return;
@@ -669,6 +782,16 @@ function renderReport() {
             <div class="flex-between" style="padding:8px 0;"><span>Attesa Scontrino/Verifica</span> <strong style="color:var(--warning);">€ ${expPending.toFixed(2)}</strong></div>
         </div>
 
+        <div class="card mb-4" style="background:#f8fafc; border:1px solid #e2e8f0; border-left: 4px solid var(--info);">
+            <h3 style="color:var(--info); margin-bottom:10px;">👷‍♂️ Dettaglio Ore Manovali</h3>
+            <select id="workerDetailSelect" onchange="window.updateWorkerDetailReport()" style="width:100%; padding:10px; border-radius:8px; border:1px solid #ccc; margin-bottom:10px; font-size:1rem; background:white;">
+                <option value="all">Tutti i Manovali Insieme</option>
+                ${Object.values(appCache.external_workers).filter(w=>w.active!==false).sort((a,b)=>(a.fullName||'').localeCompare(b.fullName||'')).map(w=>`<option value="${w.id}">${w.fullName}</option>`).join('')}
+            </select>
+            <div id="workerDetailResults"></div>
+        </div>
+
+
         <div class="card mb-4" style="background:#f8fafc; border:1px solid #e2e8f0;">
             <h3 style="color:var(--primary); margin-bottom:10px;">📊 Allocazione Costi</h3>
             <h4 style="margin-top:10px; font-size:0.9rem; color:#666;">Per Famiglia</h4>
@@ -703,6 +826,7 @@ function renderReport() {
 
         <button class="btn btn-outline" style="margin-bottom:20px;" onclick="alert('Export CSV / Struttura Dati pronta nel database Firebase!')">📥 Esporta Dati</button>
     `;
+    setTimeout(() => window.updateWorkerDetailReport(), 50);
 }
 
 window.openTaskDetail = async (taskId) => {
@@ -714,7 +838,7 @@ window.openTaskDetail = async (taskId) => {
         renderHome();
     }
     const ev = liveExpenses.filter(e=>e.taskId===taskId);
-    const expHtml = ev.length===0?'Nessuna spesa.':ev.map(e=>`<div class="flex-between"><span>${e.description}</span><strong>€${e.amount.toFixed(2)}</strong></div><div style="font-size:0.75rem; color:var(--text-muted)">${(e.allocations||[]).map(a=>`${appCache.organizations[a.entityId]?.name || appCache.families[a.entityId]?.name || a.entityId}(${a.percentage.toFixed(0)}%)`).join(', ')}</div><div class="mt-1" style="text-align:right;"><button class="btn btn-outline" style="padding:4px 8px; font-size:0.75rem; margin-right:5px;" onclick="window.editExpense('${e.id}')">✏️ Modifica</button><button class="btn btn-danger btn-outline" style="padding:4px 8px; font-size:0.75rem;" onclick="window.deleteExpense('${e.id}', true)">🗑️ Elimina</button></div>`).join('');
+    const expHtml = ev.length===0?'Nessuna spesa.':ev.map(e=>`<div class="flex-between"><span>${e.dateStr ? `<span style="color:var(--primary);font-size:0.8rem;margin-right:5px">[${e.dateStr}]</span>` : ''}${e.description}</span><strong>€${e.amount.toFixed(2)}</strong></div><div style="font-size:0.75rem; color:var(--text-muted)">${(e.allocations||[]).map(a=>`${appCache.organizations[a.entityId]?.name || appCache.families[a.entityId]?.name || a.entityId}(${a.percentage.toFixed(0)}%)`).join(', ')}</div><div class="mt-1" style="text-align:right;"><button class="btn btn-outline" style="padding:4px 8px; font-size:0.75rem; margin-right:5px;" onclick="window.editExpense('${e.id}')">✏️ Modifica</button><button class="btn btn-danger btn-outline" style="padding:4px 8px; font-size:0.75rem;" onclick="window.deleteExpense('${e.id}', true)">🗑️ Elimina</button></div>`).join('');
     let supW = ``; if(t.supportWorkers && t.supportWorkers.length > 0) { supW = `<div class="mt-2"><span style="font-size:0.8rem; color:#666;">👨‍🔧 Supporto:</span> ${t.supportWorkers.map(w=>`<span class="entity-tag" style="background:#e0f2fe; color:#1e40af;">${appCache.external_workers[w]?.fullName||w}</span>`).join(' ')}</div>`; }
     
     let acts = '';
@@ -729,7 +853,7 @@ window.openTaskDetail = async (taskId) => {
     acts += `<button class="btn btn-danger btn-outline mt-4" onclick="window.execAction('DEL_TASK','${t.id}')">🗑️ Elimina</button>`;
 
     const wv = liveWorkSessions.filter(w=>w.taskId===taskId);
-    const wrkHtml = wv.length===0?'<div class="text-muted" style="font-size:0.85rem;">Nessuna manovalanza.</div>':wv.map(w=>`<div class="flex-between" style="margin-top:5px; border-top:1px dashed #eee; padding-top:5px;"><span>${appCache.external_workers[w.workerId]?.fullName||w.workerId} (${w.hours}h)</span><strong>€${w.cost.toFixed(2)}</strong></div><div style="font-size:0.75rem; color:var(--text-muted)">${(w.allocations||[]).map(a=>`${appCache.organizations[a.entityId]?.name || appCache.families[a.entityId]?.name || a.entityId}(${a.percentage.toFixed(0)}%)`).join(', ')}</div><div class="mt-1" style="text-align:right;"><button class="btn btn-outline" style="padding:4px 8px; font-size:0.75rem; margin-right:5px;" onclick="window.editWorkSession('${w.id}')">✏️ Modifica</button><button class="btn btn-danger btn-outline" style="padding:4px 8px; font-size:0.75rem;" onclick="window.deleteWorkSession('${w.id}')">🗑️ Elimina</button></div>`).join('');
+    const wrkHtml = wv.length===0?'<div class="text-muted" style="font-size:0.85rem;">Nessuna manovalanza.</div>':wv.map(w=>`<div class="flex-between" style="margin-top:5px; border-top:1px dashed #eee; padding-top:5px;"><span>${w.date ? `<span style="color:var(--primary);font-size:0.8rem;margin-right:5px">[${w.date}]</span>` : ''}${appCache.external_workers[w.workerId]?.fullName||w.workerId}</span><strong>€${(w.cost||w.totalCost||0).toFixed(2)}</strong></div><div style="font-size:0.75rem; color:var(--text-muted)">${(w.allocations||[]).map(a=>`${appCache.organizations[a.entityId]?.name || appCache.families[a.entityId]?.name || a.entityId}(${a.percentage.toFixed(0)}%)`).join(', ')}</div><div class="mt-1" style="text-align:right;"><button class="btn btn-outline" style="padding:4px 8px; font-size:0.75rem; margin-right:5px;" onclick="window.editWorkSession('${w.id}')">✏️ Modifica</button><button class="btn btn-danger btn-outline" style="padding:4px 8px; font-size:0.75rem;" onclick="window.deleteWorkSession('${w.id}')">🗑️ Elimina</button></div>`).join('');
     
     let prioBadge = '';
     if(t.priority) {
@@ -1096,6 +1220,8 @@ window.openExpenseWizard = (taskId=null) => {
         <input type="number" id="wea" step="0.01" placeholder="0.00" required>
         <label>Descrizione / Causale</label>
         <input type="text" id="wed" placeholder="Es. Viti e tasselli" required>
+        <label>Data Spesa</label>
+        <input type="date" id="weDt" value="${new Date().toISOString().split('T')[0]}" required>
         <label>Seleziona Task (Applica automaticamente i centri di costo)</label>
         <select id="wet"><option value="">Nessun Task</option>${opts}</select>
         <div id="weAllocDiv" style="margin-top:10px; padding:10px; border:1px solid #ddd; background:#fafafa; border-radius:8px;">
@@ -1190,10 +1316,11 @@ window.openExpenseWizard = (taskId=null) => {
 
         const receiptMock = hasReceipt ? ('receipt_' + Date.now() + '_' + fileInput.files[0].name) : null;
         
+        const expDt = b.querySelector('#weDt').value || new Date().toISOString().split('T')[0];
         const exp=await addDoc(collection(db,"expenses"),{
             taskId: tId, amount: amt, description: desc, category: cat, veicolo: cat==='carburante'?veic:null, 
             paidBy: currentUser.id, allocations: allocs, status: finalStatus, receiptUrl: receiptMock, justification: note,
-            dateStr: new Date().toISOString().split('T')[0], createdAt: serverTimestamp()
+            dateStr: expDt, createdAt: serverTimestamp()
         });
         
         if(currentUser.roles.includes('technician')) { 
@@ -1279,6 +1406,7 @@ window.openWorkerSessionWizard = () => {
         <label>Seleziona Manovale</label>
         <select id="wwn" required><option value="">-- Scegliere Manovale --</option>${wOpts}</select>
         <label>Costo Giornaliero Concordato (€)</label><input type="number" id="wwc" step="1" placeholder="Es. 80" required>
+        <label>Data Operazione</label><input type="date" id="wwd" value="${new Date().toISOString().split('T')[0]}" required>
         <label>Seleziona i Task in cui ha aiutato (obbligatorio):</label>
         <div style="max-height:150px; overflow-y:auto; border:1px solid #ccc; padding:10px;">${taskChecks}</div>
         <button type="submit" class="btn btn-success mt-4">Salva Sessione Lavoro</button>
@@ -1294,7 +1422,8 @@ window.openWorkerSessionWizard = () => {
         const amt = parseFloat(b.querySelector('#wwc').value);
         const wId = b.querySelector('#wwn').value;
         const wName = appCache.external_workers[wId]?.fullName || wId;
-        const nw = await addDoc(collection(db,"work_sessions"),{workerId:wId, date:new Date().toISOString().split('T')[0], assignedBy:currentUser.id, tasks:tks, dailyRate:amt, totalCost:amt, status:'worked', allocations:[], createdAt:serverTimestamp()});
+        const sessionDt = b.querySelector('#wwd').value || new Date().toISOString().split('T')[0];
+        const nw = await addDoc(collection(db,"work_sessions"),{workerId:wId, date:sessionDt, assignedBy:currentUser.id, tasks:tks, dailyRate:amt, totalCost:amt, status:'worked', allocations:[], createdAt:serverTimestamp()});
         for(let tid of tks) {
             const tkObj = liveTasks.find(x=>x.id===tid);
             if(tkObj) {
@@ -1441,21 +1570,61 @@ window.editWorkSession = async (id) => {
 
 init();
 
+window.deleteCashMovement = async (cmId) => {
+    if(!confirm("Vuoi eliminare definitivamente questa voce di cassa dallo storico?")) return;
+    try {
+        const cm = liveCash.find(c => c.id === cmId);
+        if(!cm) return;
+        
+        const userTxs = liveCash.filter(c => c.givenTo === cm.givenTo).sort((a,b) => (a.createdAt?.seconds||0) - (b.createdAt?.seconds||0));
+        const idx = userTxs.findIndex(c => c.id === cm.id);
+        
+        const isPos = cm.type==='advance' || cm.type==='reimbursement' || cm.type==='adjustment';
+        const diff = isPos ? -cm.amount : cm.amount;
+
+        if(idx !== -1) {
+            for(let i = idx + 1; i < userTxs.length; i++) {
+                const nextTx = userTxs[i];
+                await updateDoc(doc(db, "cash_movements", nextTx.id), {
+                    balanceAfter: nextTx.balanceAfter + diff
+                });
+            }
+        }
+        await deleteDoc(doc(db, "cash_movements", cm.id));
+        
+        // Se c'è un riferimento all'anagrafica della spesa originaria, puliamo anche quella
+        if(cm.relatedExpenseId) {
+            try { await deleteDoc(doc(db, "expenses", cm.relatedExpenseId)); } catch(ex){}
+        }
+        
+        const tm = document.getElementById('taskDetailModal');
+        if(tm && tm.classList.contains('open')) { /* do nothing */ }
+        else { const b = document.getElementById('bottomNav').querySelector('.nav-item.active'); if(b && b.dataset.target === 'view-finance') renderFinance(); }
+        
+    } catch(err) { alert("Errore: " + err.message); }
+};
+
 window.deleteExpense = async (id, isFromWorker = false) => {
-    if(!confirm("Sicuro di voler eliminare questa spesa?")) return;
+    if(!confirm("Sicuro di voler eliminare definitivamente questa spesa rimuovendola dallo storico?")) return;
     try {
         const e = liveExpenses.find(x => x.id === id);
         if(!e) return;
-        if(isFromWorker && e.paidBy === currentUser.id && currentUser.roles.includes('technician')) {
-            const cList = liveCash.filter(c=>c.givenTo===currentUser.id).sort((a,b)=>b.createdAt-a.createdAt);
-            const currentBal = cList.length > 0 ? cList[0].balanceAfter : 0;
-            const balAfter = currentBal + e.amount;
-            await addDoc(collection(db,"cash_movements"),{
-                type: 'adjustment', givenBy: currentUser.id, givenTo: currentUser.id,
-                amount: e.amount, reason: "Storno eliminazione spesa: " + e.description,
-                balanceAfter: balAfter, createdAt: serverTimestamp()
-            });
+        
+        const cm = liveCash.find(c => c.relatedExpenseId === id);
+        if(cm) {
+            const userTxs = liveCash.filter(c => c.givenTo === cm.givenTo).sort((a,b) => (a.createdAt?.seconds||0) - (b.createdAt?.seconds||0));
+            const idx = userTxs.findIndex(c => c.id === cm.id);
+            if(idx !== -1) {
+                for(let i = idx + 1; i < userTxs.length; i++) {
+                    const nextTx = userTxs[i];
+                    await updateDoc(doc(db, "cash_movements", nextTx.id), {
+                        balanceAfter: nextTx.balanceAfter + e.amount
+                    });
+                }
+            }
+            await deleteDoc(doc(db, "cash_movements", cm.id));
         }
+
         await deleteDoc(doc(db,"expenses", id));
         await logActivity('DELETE_EXPENSE','expense',id);
         const tm = document.getElementById('taskDetailModal');
@@ -1508,28 +1677,8 @@ window.openPivotModal = (filterType) => {
     const myOrgs = (currentUser.organizationRoles||[]).map(x=>x.organizationId);
 
     const canSee = (item) => {
-        if(isAdmin) return true;
-        if(isSupervisor) {
-            if(item.status === 'pending_approval' || item.status === 'new' || item.status === 'completed' || item.status === 'accounted') return true;
-            if((item.familyIds||[]).includes('famiglia_teresa') || (item.familyIds||[]).includes('fam_teresa')) return true;
-            if((item.organizationIds||[]).includes('eubios') || (item.organizationIds||[]).includes('org_eubios')) return true;
-            return false;
-        }
-        if(isDomainApprover) {
-            if(item.status === 'pending_approval' && (
-                (item.familyIds||[]).some(x=>myFam.includes(x)) || 
-                (item.organizationIds||[]).some(x=>myOrgs.includes(x))
-            )) return true;
-            if((item.familyIds||[]).some(x=>myFam.includes(x))) return true;
-            if((item.organizationIds||[]).some(x=>myOrgs.includes(x))) return true;
-            return false;
-        }
-        if(isWorker) {
-            if(item.assignedTo === currentUser.id) return true;
-            if(item.requestedBy === currentUser.id) return true;
-            return false;
-        }
-        return false;
+        // Garantisce visibilità totale in Pivot e Report in ottica di trasparenza costi
+        return true;
     };
 
     liveTasks.forEach(t => {
