@@ -181,8 +181,8 @@ function renderHome() {
             const tmrwObj = new Date(); tmrwObj.setDate(tmrwObj.getDate() + 1);
             const tmrwIso = tmrwObj.toISOString().split('T')[0];
 
-            if(filterType === 'unprogrammed') { if(!t.scheduledStart) match = true; }
-            else if(filterType === 'programmed') { if(t.scheduledStart) match = true; }
+            if(filterType === 'unprogrammed') { if(!t.scheduledStart || t.scheduledStart.split('T')[0] < todayIso) match = true; }
+            else if(filterType === 'programmed') { if(t.scheduledStart && t.scheduledStart.split('T')[0] >= todayIso) match = true; }
             else if(filterType === 'oggi') { if(t.scheduledStart && t.scheduledStart.startsWith(todayIso)) match = true; }
             else if(filterType === 'domani') { if(t.scheduledStart && t.scheduledStart.startsWith(tmrwIso)) match = true; }
             else if(filterType === 'completed') { if(t.status === 'completed') match = true; }
@@ -210,24 +210,46 @@ function renderHome() {
     
     if(currentUser.id === 'paolo' || isWorker || isAdmin) {
         const todayIso = new Date().toISOString().split('T')[0];
-        const prevOpen = liveWorkSessions.filter(s => s.workerId === 'paolo' && s.type === 'paolo_shift' && s.status === 'open' && s.date < todayIso).length;
+        const currMonthStr = todayIso.substring(0,7);
+        const todaysOpenShift = liveWorkSessions.some(s => (s.workerId === 'paolo' || s.workerId === currentUser.id) && s.type === 'paolo_shift' && s.status === 'open' && s.date === todayIso);
+        const prevOpen = liveWorkSessions.filter(s => (s.workerId === 'paolo' || s.workerId === currentUser.id) && s.type === 'paolo_shift' && s.status === 'open' && s.date < todayIso).length;
+        const workedThisMonth = liveWorkSessions.filter(s => (s.workerId === 'paolo' || s.workerId === currentUser.id) && s.type === 'paolo_shift' && s.status === 'closed' && s.date.startsWith(currMonthStr)).length;
+
+        let dynamicBtnHtml = '';
+        if (prevOpen > 0) {
+            dynamicBtnHtml = `
+            <div onclick="window.openShiftListModal('da_chiudere')" class="shadow-sm" style="flex:1; background:#f59e0b; color:white; padding:15px; border-radius:8px; text-align:center; cursor:pointer; display:flex; flex-direction:column; justify-content:center; position:relative;">
+                 <div style="font-weight:bold; font-size:1.05rem; margin-bottom:0px;">⚠️ DA CHIUDERE</div>
+                 <div style="position:absolute; top:-6px; right:-6px; background:var(--danger); color:white; border-radius:12px; padding:2px 8px; font-size:0.8rem; font-weight:bold; border:2px solid white;">${prevOpen}</div>
+            </div>`;
+        } else if (todaysOpenShift) {
+            dynamicBtnHtml = `
+            <div onclick="window.chiudiGiornataPaolo()" class="shadow-sm" style="flex:1; background:#b91c1c; color:white; padding:15px; border-radius:8px; text-align:center; cursor:pointer; display:flex; flex-direction:column; justify-content:center;">
+                 <div style="font-weight:bold; font-size:1.05rem; margin-bottom:0px;">🛑 CHIUDI GIORNATA</div>
+            </div>`;
+        } else {
+            dynamicBtnHtml = `
+            <div onclick="window.apriGiornataPaolo()" class="shadow-sm" style="flex:1; background:#059669; color:white; padding:15px; border-radius:8px; text-align:center; cursor:pointer; display:flex; flex-direction:column; justify-content:center;">
+                 <div style="font-weight:bold; font-size:1.05rem; margin-bottom:0px;">🕒 APRI GIORNATA</div>
+            </div>`;
+        }
 
         dashHtml += `
-        <div style="grid-column: 1 / -1; display:flex; gap:10px; margin-top:5px;">
-            <div onclick="window.apriGiornataPaolo()" class="shadow-sm" style="flex:1; background:#059669; color:white; padding:15px; border-radius:8px; display:flex; align-items:center; justify-content:center; cursor:pointer;">
-                <div style="font-weight:bold; font-size:1.1rem; text-align:center;">🕒 APRI GIORNATA</div>
+        <div style="grid-column: 1 / -1; display:flex; flex-direction:column; gap:10px; margin-top:5px; margin-bottom:15px;">
+            <div onclick="window.openNewRequestWizard()" class="shadow-sm" style="background:var(--primary); color:white; padding:12px; border-radius:8px; text-align:center; cursor:pointer; box-shadow:0 4px 6px rgba(0,0,0,0.1);">
+                <div style="font-weight:bold; font-size:1.05rem; letter-spacing:0.5px;">➕ CREA NUOVO TASK</div>
             </div>
-            <div onclick="window.chiudiGiornataPaolo()" class="shadow-sm" style="flex:1; background:#b91c1c; color:white; padding:15px; border-radius:8px; display:flex; align-items:center; justify-content:center; cursor:pointer;">
-                <div style="font-weight:bold; font-size:1.1rem; text-align:center;">🛑 CHIUDI GIORNATA</div>
+
+            <div id="btnManovaleMain" onclick="document.getElementById('manovaleSub').style.display = document.getElementById('manovaleSub').style.display==='none'?'flex':'none';" class="shadow-sm" style="background:#0f172a; color:white; padding:18px; border-radius:8px; text-align:center; cursor:pointer; position:relative;">
+                <div style="font-size:1.15rem; font-weight:900; letter-spacing:0.5px; margin-bottom:5px;">🛠️ GESTIONE GIORNATE</div>
+                <div style="font-size:0.95rem; color:#94a3b8; font-weight:bold;">${workedThisMonth} giornate lavorate in questo mese</div>
             </div>
-        </div>
-        <div style="grid-column: 1 / -1; display:flex; gap:10px; margin-top:0px;">
-            <div onclick="window.openShiftListModal('da_chiudere')" class="shadow-sm" style="flex:1; background:#f59e0b; color:white; padding:10px; border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; position:relative;">
-                <div style="font-weight:bold; font-size:0.9rem; text-align:center;">⚠️ DA CHIUDERE</div>
-                ${prevOpen>0 ? `<div style="position:absolute; top:-8px; right:-8px; background:var(--danger); color:white; border-radius:12px; padding:2px 8px; font-size:0.8rem; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.2); border:2px solid white;">${prevOpen}</div>` : ''}
-            </div>
-            <div onclick="window.openShiftListModal('chiusi')" class="shadow-sm" style="flex:1; background:#64748b; color:white; padding:10px; border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer;">
-                <div style="font-weight:bold; font-size:0.9rem; text-align:center;">✅ CHIUSI</div>
+            
+            <div id="manovaleSub" style="display:none; gap:10px; transition:0.3s; margin-top:2px;">
+                ${dynamicBtnHtml}
+                <div onclick="window.openShiftMonthModal()" class="shadow-sm" style="flex:1; background:#334155; color:white; padding:15px; border-radius:8px; text-align:center; cursor:pointer; display:flex; flex-direction:column; justify-content:center;">
+                     <div style="font-weight:bold; font-size:1.05rem; margin-bottom:0px;">📜 ELENCO MESE</div>
+                </div>
             </div>
         </div>
         `;
@@ -799,8 +821,7 @@ function renderReport() {
         <div class="card mb-4" style="background:#f8fafc; border:1px solid #e2e8f0; border-left: 4px solid var(--success);">
             <h3 style="color:var(--success); margin-bottom:10px;">⏱️ Statistiche Ore Lavorate Paolo</h3>
             <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:15px; border-bottom:1px solid #ddd; padding-bottom:10px;">
-                Costo Fisso Concordato: <b>€ 2500 lordo / mensilità</b> (calcolato in base a ferie, permessi ecc. con std: ~135h/mese lavorabili = ~18,52 €/h)<br>
-                Premialità generata per ore extra indicate in verde.
+                Riepilogo ore della prestazione lavorativa (le ore extra sono indicate in verde).
             </div>
             
             <div class="flex-between" style="padding:8px 0; border-bottom:1px solid #eee;">
@@ -1770,8 +1791,8 @@ window.openSimpleListModal = (filterType) => {
     liveTasks.forEach(t => {
         if(t.status === 'completed' || t.status === 'accounted') return;
         let match = false;
-        if(filterType === 'unprogrammed') { if(!t.scheduledStart) match = true; }
-        else if(filterType === 'programmed') { if(t.scheduledStart) match = true; }
+        if(filterType === 'unprogrammed') { if(!t.scheduledStart || t.scheduledStart.split('T')[0] < todayIso) match = true; }
+        else if(filterType === 'programmed') { if(t.scheduledStart && t.scheduledStart.split('T')[0] >= todayIso) match = true; }
         else if(filterType === 'oggi') { if(t.scheduledStart && t.scheduledStart.startsWith(todayIso)) match = true; }
         else if(filterType === 'domani') { if(t.scheduledStart && t.scheduledStart.startsWith(tmrwIso)) match = true; }
         if(match) tasks.push(t);
@@ -1833,6 +1854,89 @@ window.openSimpleListModal = (filterType) => {
         lc.style.display = 'flex';
         const sm = document.getElementById('simpleListModal'); if(sm) sm.classList.remove('open');
     }
+};
+
+window.openGestioneTurniModal = () => {
+    const todayIso = new Date().toISOString().split('T')[0];
+    const prevOpen = liveWorkSessions.filter(s => (s.workerId === 'paolo' || s.workerId === currentUser.id) && s.type === 'paolo_shift' && s.status === 'open' && s.date < todayIso).length;
+
+    let html = `
+        <div style="display:flex; flex-direction:column; gap:15px; padding-top:10px; padding-bottom:50px;">
+            <div onclick="window.apriGiornataPaolo(); document.getElementById('gestioneTurniModal').classList.remove('open');" class="shadow-sm" style="background:#059669; color:white; padding:15px; border-radius:8px; display:flex; align-items:center; justify-content:center; cursor:pointer;">
+                <div style="font-weight:bold; font-size:1.1rem; text-align:center;">🕒 APRI GIORNATA</div>
+            </div>
+            <div onclick="window.chiudiGiornataPaolo(); document.getElementById('gestioneTurniModal').classList.remove('open');" class="shadow-sm" style="background:#b91c1c; color:white; padding:15px; border-radius:8px; display:flex; align-items:center; justify-content:center; cursor:pointer;">
+                <div style="font-weight:bold; font-size:1.1rem; text-align:center;">🛑 CHIUDI GIORNATA</div>
+            </div>
+            <div onclick="window.openShiftListModal('da_chiudere'); document.getElementById('gestioneTurniModal').classList.remove('open');" class="shadow-sm" style="background:#f59e0b; color:white; padding:15px; border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; position:relative;">
+                <div style="font-weight:bold; font-size:1.1rem; text-align:center;">⚠️ TURNI DA CHIUDERE</div>
+                <div style="font-size:0.85rem; margin-top:4px;">Turni dimenticati aperti</div>
+                ${prevOpen>0 ? `<div style="position:absolute; top:-8px; right:-8px; background:var(--danger); color:white; border-radius:12px; padding:2px 8px; font-size:0.8rem; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.2); border:2px solid white;">${prevOpen} pendenti</div>` : ''}
+            </div>
+        </div>
+    `;
+
+    if(!document.getElementById('gestioneTurniModal')) {
+        const d = document.createElement('div');
+        d.id = 'gestioneTurniModal';
+        d.className = 'bottom-sheet';
+        d.innerHTML = `
+            <div class="bottom-sheet-content">
+                <div class="bottom-sheet-header">
+                    <h2 id="gtmTitle">Gestisci Turno</h2>
+                    <button class="btn-close" onclick="document.getElementById('gestioneTurniModal').classList.remove('open')">×</button>
+                </div>
+                <div class="bottom-sheet-body" id="gtmBody" style="max-height:60vh; overflow-y:auto; padding:15px; background:var(--bg)"></div>
+            </div>
+        `;
+        document.body.appendChild(d);
+    }
+    document.getElementById('gtmBody').innerHTML = html;
+    document.getElementById('gestioneTurniModal').classList.add('open');
+};
+
+window.openShiftMonthModal = () => {
+    const todayIso = new Date().toISOString().split('T')[0];
+    const currMonthStr = todayIso.substring(0,7);
+    let shifts = liveWorkSessions.filter(s => (s.workerId === 'paolo' || s.workerId === currentUser.id) && s.type === 'paolo_shift' && s.date.startsWith(currMonthStr));
+    shifts.sort((a,b)=>b.date.localeCompare(a.date));
+
+    let html = '';
+    shifts.forEach(s => {
+        let title = `Giornata del ${s.date.split('-').reverse().join('/')}`;
+        let sub = `Inizio: ${s.startTime}`;
+        if(s.status === 'closed') {
+            const hrs = ((new Date(s.endDate+'T'+s.endTime) - new Date(s.date+'T'+s.startTime))/3600000).toFixed(1);
+            sub += ` - Fine: ${s.endTime} (${hrs}h)`;
+        } else {
+            sub += ` <span style="color:var(--warning); font-weight:bold;">(Aperto / In Corso)</span>`;
+        }
+        
+        let cBorder = s.status==='closed'?'success':(s.date<todayIso?'danger':'warning');
+        html += `<div class="card mb-2 shadow-sm" style="border-left:4px solid var(--${cBorder}); padding:12px;">
+            <div style="font-weight:bold; font-size:1rem;">${title}</div>
+            <div style="font-size:0.85rem; color:var(--text-muted); margin-top:3px;">${sub}</div>
+        </div>`;
+    });
+    if(shifts.length === 0) html = '<div class="text-muted text-center p-3">Nessun turno lavorato in questo mese.</div>';
+
+    if(!document.getElementById('shiftMonthModal')) {
+        const d = document.createElement('div');
+        d.id = 'shiftMonthModal';
+        d.className = 'bottom-sheet';
+        d.innerHTML = `
+            <div class="bottom-sheet-content">
+                <div class="bottom-sheet-header">
+                    <h2>Storico Mese</h2>
+                    <button class="btn-close" onclick="document.getElementById('shiftMonthModal').classList.remove('open')">×</button>
+                </div>
+                <div class="bottom-sheet-body" id="smmBody" style="max-height:70vh; overflow-y:auto; padding:15px; background:var(--bg)"></div>
+            </div>
+        `;
+        document.body.appendChild(d);
+    }
+    document.getElementById('smmBody').innerHTML = html;
+    document.getElementById('shiftMonthModal').classList.add('open');
 };
 
 window.openShiftListModal = (type) => {
