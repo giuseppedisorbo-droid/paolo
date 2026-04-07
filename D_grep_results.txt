@@ -1,0 +1,23 @@
+462: h += `</ul><h3 class="mt-4">Storico Manovalanza (Da Me Inserita)</h3><ul style="list-style:none; padding:10px 0;">`;
+523: h += `<h3 class="mt-4">Gestione Manovalanza</h3>`;
+525: if(unallocW.length === 0) h += `<p class="text-muted text-center">Nessuna manovalanza.</p>`;
+531: <div class="card-meta mt-2">Manovale: <strong>${wName}</strong> | In Data: ${w.date}</div>
+605: const fullName = prompt("Inserisci il Nome e Cognome del manovale:");
+622: const fullName = prompt("Modifica Nome Manovale:", w.fullName);
+637: if(!confirm("Sicuro di eliminare questo manovale? (Non comparirà più nelle liste, ma i report pregressi saranno salvi)")) return;
+686: <h3 style="margin:0; font-size:1.1rem; color:var(--info);">Anagrafica Manovali (${workers.length}) <span>▼</span></h3>
+689: <button class="btn btn-outline mb-3" onclick="window.addExternalWorker()" style="padding:8px; font-size:0.9rem;">➕ Aggiungi Manovale</button>
+691: ${workers.length===0 ? '<div class="text-muted">Nessun manovale attivo.</div>' : ''}
+792: <div class="flex-between" style="padding:8px 0; border-bottom:1px solid #eee;"><span>Costi Manovalanza Tot.</span> <strong style="color:var(--danger);">€ ${workerCostTotal.toFixed(2)}</strong></div>
+799: <h3 style="color:var(--info); margin-bottom:10px;">👷‍♂️ Dettaglio Ore Manovali</h3>
+801: <option value="all">Tutti i Manovali Insieme</option>
+869: const wrkHtml = wv.length===0?'<div class="text-muted" style="font-size:0.85rem;">Nessuna manovalanza.</div>':wv.map(w=>`<div class="flex-between" style="margin-top:5px; border-top:1px dashed #eee; padding-top:5px;"><span>${w.date ? `<span style="color:var(--primary);font-size:0.8rem;margin-right:5px">[${w.date}]</span>` : ''}${appCache.external_workers[w.workerId]?.fullName||w.workerId}</span><strong>€${(w.cost||w.totalCost||0).toFixed(2)}</strong></div><div style="font-size:0.75rem; color:var(--text-muted)">${(w.allocations||[]).map(a=>`${appCache.organizations[a.entityId]?.name || appCache.families[a.entityId]?.name || a.entityId}(${a.percentage.toFixed(0)}%)`).join(', ')}</div><div class="mt-1" style="text-align:right;"><button class="btn btn-outline" style="padding:4px 8px; font-size:0.75rem; margin-right:5px;" onclick="window.editWorkSession('${w.id}')">✏️ Modifica</button><button class="btn btn-danger btn-outline" style="padding:4px 8px; font-size:0.75rem;" onclick="window.deleteWorkSession('${w.id}')">🗑️ Elimina</button></div>`).join('');
+886: document.getElementById('taskDetailContent').innerHTML = `<span class="status-badge status-${t.status} mb-2">${window.getStatusText(t.status)}</span>${prioBadge}<h2 class="mb-2 mt-2">${t.title}</h2><div class="entity-tags">${getEntTags(t.familyIds,t.organizationIds)}</div>${supW}${laborInfo}<p class="mt-2">${t.description}</p><h4 class="mt-4">Spese Materiali</h4>${expHtml}<h4 class="mt-4">Manovalanza Esterna</h4>${wrkHtml}`;
+1413: const b = document.getElementById('wizardBody'); document.getElementById('wizardTitle').textContent="Giornata Manovale";
+1416: if(myTodayTasks.length===0) return alert("Non hai task attivi a cui associare il manovale!");
+1419: <label>Seleziona Manovale</label>
+1420: <select id="wwn" required><option value="">-- Scegliere Manovale --</option>${wOpts}</select>
+1434: if(tks.length===0) return alert("Devi associare il manovale ad almeno un task!");
+1447: await logActivity('ADD_WORK_SESSION','work_sessions',nw.id, `Manovale ${wName} inserito per €${amt}`);
+1448: sendNotification('admin', 'Nuovo Costo Manovalanza', `${currentUser.fullName} ha inserito giornata per ${wName} (${amt}€)`);
+1573: const nCost = prompt("Nuovo Costo Totale da imputare al Manovale (€):", currCost);

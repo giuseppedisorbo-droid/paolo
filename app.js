@@ -177,108 +177,64 @@ function renderHome() {
             if(!canSee(t)) return; // <-- Only count what user can see
             
             let match = false;
-            if(filterType === 'all') match = true;
+            const todayIso = new Date().toISOString().split('T')[0];
+            const tmrwObj = new Date(); tmrwObj.setDate(tmrwObj.getDate() + 1);
+            const tmrwIso = tmrwObj.toISOString().split('T')[0];
+
+            if(filterType === 'unprogrammed') { if(!t.scheduledStart) match = true; }
+            else if(filterType === 'programmed') { if(t.scheduledStart) match = true; }
+            else if(filterType === 'oggi') { if(t.scheduledStart && t.scheduledStart.startsWith(todayIso)) match = true; }
+            else if(filterType === 'domani') { if(t.scheduledStart && t.scheduledStart.startsWith(tmrwIso)) match = true; }
             else if(filterType === 'completed') { if(t.status === 'completed') match = true; }
             else if(filterType === 'accounted') { if(t.status === 'accounted') match = true; }
-            else if(filterType === 'high') { if(t.priority==='high') match=true; }
-            else if(filterType === 'medium') { if(t.priority==='medium' || !t.priority) match=true; }
-            else if(filterType === 'low') { if(t.priority==='low') match=true; }
-            else if(filterType === 'scheduled') { if(t.scheduledStart) match=true; }
             if(match) { count++; if(!(t.readBy||[]).includes(currentUser.id)) newCount++; }
         });
         return {count, newCount};
     };
 
-    let dashHtml = `<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px;">`;
+    let dashHtml = `<div id="dashboardGridContainer"><div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px;">`;
     const btns = [
-        {id:'all', label:'TUTTI I TASK', bg:'#10b981'},
-        {id:'high', label:'Alta Priorità', bg:'#dc2626'},
-        {id:'medium', label:'Media Priorità', bg:'#d97706'},
-        {id:'low', label:'Bassa Priorità', bg:'#2563eb'},
-        {id:'scheduled', label:'Programmati', bg:'#0284c7'},
-        {id:'completed', label:'Completati', bg:'#059669'},
-        {id:'accounted', label:'Contabilizzati', bg:'#3b82f6'}
+        {id:'unprogrammed', label:'NON PROGRAMMATI (Da Fare)', bg:'#dc2626'},
+        {id:'programmed', label:'PROGRAMMATI', bg:'#10b981'},
+        {id:'oggi', label:'OGGI', bg:'#0ea5e9'},
+        {id:'domani', label:'DOMANI', bg:'#f59e0b'}
     ];
     btns.forEach((b, i) => {
         const c = getPriCounters(b.id);
-        const span = (b.id === 'all') ? `grid-column: 1 / -1;` : '';
-        dashHtml += `<div onclick="window.openPivotModal('${b.id}')" class="shadow-sm" style="background:${b.bg}; color:white; padding:15px; border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; position:relative; ${span} transition:0.2s;" onmouseover="this.style.opacity=0.9" onmouseout="this.style.opacity=1">
-            <div style="font-weight:bold; font-size:1.1rem; text-align:center;">${b.label}</div>
+        dashHtml += `<div onclick="window.openSimpleListModal('${b.id}')" class="shadow-sm" style="background:${b.bg}; color:white; padding:15px; border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; position:relative; transition:0.2s;" onmouseover="this.style.opacity=0.9" onmouseout="this.style.opacity=1">
+            <div style="font-weight:bold; font-size:1.05rem; text-align:center;">${b.label}</div>
             <div style="font-size:1.8rem; font-weight:800; margin-top:5px;">${c.count}</div>
             ${c.newCount > 0 ? `<div style="position:absolute; top:-8px; right:-8px; background:var(--danger); color:white; border-radius:12px; padding:4px 10px; font-size:0.85rem; font-weight:bold; border:2px solid white; box-shadow:0 2px 4px rgba(0,0,0,0.2); animation: pulse 2s infinite;">${c.newCount} Nuovi</div>` : ''}
         </div>`;
     });
-    dashHtml += `</div>`;
-    feed.innerHTML = dashHtml;
+    
+    if(currentUser.id === 'paolo' || isWorker || isAdmin) {
+        const todayIso = new Date().toISOString().split('T')[0];
+        const prevOpen = liveWorkSessions.filter(s => s.workerId === 'paolo' && s.type === 'paolo_shift' && s.status === 'open' && s.date < todayIso).length;
 
-
-    if(isAdmin || isSupervisor || isDomainApprover) {
-        liveRequests.filter(r=> (r.status==='new'||r.status==='approved') && canSee(r)).forEach(r => feed.innerHTML += `<div class="card"><div class="card-header"><span class="status-badge status-${r.status}">${r.status}</span> <span style="font-size:0.8rem;color:var(--text-muted)">📍 ${appCache.locations[r.locationId]?.name||'N/D'}</span></div><div class="card-title">${r.title}</div><p style="font-size:0.9rem;color:#666">${r.description}</p><div class="entity-tags">${getEntTags(r.familyIds,r.organizationIds)}</div><button class="btn btn-primary mt-2" onclick="window.openApproveWizard('${r.id}')">Assegna e Pianifica</button></div>`);
-        liveTasks.filter(t=>t.status==='pending_approval' && canSee(t)).forEach(t => feed.innerHTML += `<div class="card" style="border-left: 5px solid var(--warning)"><div class="card-header"><span class="status-badge" style="background:var(--warning); color:white;">Proposto da ${t.requestedBy ? (appCache.people[t.requestedBy]?.shortName || appCache.people[t.requestedBy]?.name || t.requestedBy) : 'Tecnico'}</span></div><div class="card-title">${t.title}</div><div class="entity-tags">${getEntTags(t.familyIds,t.organizationIds)}</div><button class="btn btn-success mt-2" onclick="window.execAction('APPROVE_PROPOSED','${t.id}')">👍 Approva (Inizia Oggi)</button></div>`);
-        liveTasks.filter(t=>t.status!=='completed' && t.status!=='pending_approval' && canSee(t)).forEach(t => feed.innerHTML += `<div class="card" onclick="window.openTaskDetail('${t.id}')"><div class="card-header"><span class="status-badge status-${t.status}">${t.status}</span> <div style="text-align:right"><div style="font-weight:bold;color:var(--primary);font-size:0.8rem">${t.scheduledStart?new Date(t.scheduledStart).toLocaleDateString():''}</div><span style="font-size:0.75rem;color:var(--text-muted)">📍 ${appCache.locations[t.locationId]?.name}</span></div></div><div class="card-title">${t.title}</div><div class="entity-tags">${getEntTags(t.familyIds,t.organizationIds)}</div></div>`);
-    } else if(isWorker) {
-        const todayStr = new Date().toISOString().split('T')[0];
-        let validTasks = liveTasks.filter(t => t.assignedTo === currentUser.id && t.status !== 'completed');
-        
-        const morning = []; const afternoon = []; const pendingProps = [];
-        
-        validTasks.forEach(t => {
-            if(t.status==='pending_approval') { pendingProps.push(t); return; }
-            const isUrgent = t.priority === 'high' || t.priority === 'urgent';
-            let tgt = afternoon;
-            if(t.scheduledStart) {
-                const d = new Date(t.scheduledStart); const hrs = d.getHours(); const dStr = t.scheduledStart.split('T')[0];
-                if(dStr < todayStr && !isUrgent) tgt = morning; // Overdue top priority
-                else if(dStr === todayStr) tgt = hrs < 13 ? morning : afternoon;
-                else if(isUrgent) tgt = morning;
-                else return; // Future skipped
-            } else { if(isUrgent) tgt = morning; }
-            tgt.push(t);
-        });
-
-        const sortAgenda = (arr) => arr.sort((a,b) => {
-            const aU=(a.priority==='high'||a.priority==='urgent')?1:0, bU=(b.priority==='high'||b.priority==='urgent')?1:0;
-            if(aU !== bU) return bU - aU;
-            if(a.locationId && b.locationId && a.locationId !== b.locationId) return a.locationId.localeCompare(b.locationId);
-            if(a.scheduledStart && b.scheduledStart) return a.scheduledStart.localeCompare(b.scheduledStart);
-            return 0;
-        });
-
-        sortAgenda(morning); sortAgenda(afternoon);
-
-        let html = '';
-        if(morning.length===0 && afternoon.length===0 && pendingProps.length===0) { feed.innerHTML += '<div class="text-center text-muted mt-4 mb-4">Nessuna attività pendente per oggi. Vai al mare! 🏖️</div>'; return; }
-
-        const buildQA = (t) => `
-            <div class="card" style="border-left: 5px solid ${t.priority==='urgent'||t.priority==='high'?'var(--danger)':'var(--primary)'}">
-                <div class="card-header">
-                    <div><span class="status-badge status-${t.status}">${t.status}</span> ${t.priority==='urgent'||t.priority==='high'?'<span class="status-badge badge-urgent">🚨 URGENTE</span>':''} ${t.needsMaterial?'<span class="status-badge badge-material">📦 NO MAT</span>':''}</div>
-                    <div style="text-align:right"><span style="font-size:0.85rem; font-weight:bold; color:var(--text-main); display:block;">${t.scheduledStart?`🕒 ${new Date(t.scheduledStart).getHours().toString().padStart(2,'0')}:${new Date(t.scheduledStart).getMinutes().toString().padStart(2,'0')}`:'Nessun Orario'}</span><span style="font-size:0.75rem; color:var(--text-muted)">📍 ${appCache.locations[t.locationId]?.name||'N/D'}</span></div>
-                </div>
-                <div class="card-title" onclick="window.openTaskDetail('${t.id}')" style="cursor:pointer; margin-bottom:8px;">${t.title}</div>
-                <div class="entity-tags" style="margin-bottom:10px;">${getEntTags(t.familyIds,t.organizationIds)}</div>
-                <div class="quick-actions-bar">
-                    <button class="qa-btn qa-close" onclick="window.execAction('COMP_TASK','${t.id}')"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>Chiudi</button>
-                    <button class="qa-btn qa-material" onclick="window.execAction('TOGGLE_MATERIAL','${t.id}')"><svg viewBox="0 0 24 24"><path d="M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-6 0h-4V4h4v2z"/></svg>Materia</button>
-                    <button class="qa-btn qa-expense" onclick="window.openExpenseWizard('${t.id}')"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.11-1.36-3.11-2.92v-.46h2.26v.29c0 .61.75 1.14 2.18 1.14 1.63 0 2.21-.6 2.21-1.31 0-.89-.96-1.32-2.5-1.84-1.86-.64-3.32-1.52-3.32-3.23 0-1.54 1.25-2.58 2.95-2.92V4h2.67v1.94c1.55.33 2.81 1.25 2.81 2.8v.4h-2.2v-.23c0-.68-.81-1.21-2.04-1.21-1.52 0-2.12.59-2.12 1.22 0 .84.85 1.22 2.5 1.76 1.88.62 3.32 1.54 3.32 3.26 0 1.58-1.23 2.62-2.94 2.91z"/></svg>Spesa</button>
-                    <button class="qa-btn qa-reschedule" onclick="window.openRescheduleWizard('${t.id}')"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>Sposta</button>
-                </div>
-            </div>`;
-
-        if(morning.length > 0) { html += '<h3 style="margin-bottom:12px; color:var(--primary); font-size:1.1rem; border-bottom:2px solid var(--border); padding-bottom:5px;">☀️ Mattina</h3>'; morning.forEach(t => html += buildQA(t)); }
-        if(afternoon.length > 0) { html += '<h3 style="margin-top:20px; margin-bottom:12px; color:var(--primary); font-size:1.1rem; border-bottom:2px solid var(--border); padding-bottom:5px;">🌙 Pomeriggio</h3>'; afternoon.forEach(t => html += buildQA(t)); }
-        if(pendingProps.length > 0) { html += '<h3 style="margin-top:20px; margin-bottom:12px; color:var(--warning); font-size:1.1rem; border-bottom:2px solid var(--border); padding-bottom:5px;">🟡 Proposti (In Attesa)</h3>'; pendingProps.forEach(t => html += `<div class="card" style="border-left: 5px solid var(--warning)"><div class="card-header"><div><span class="status-badge" style="background:var(--warning); color:white;">⏳ IN ATTESA</span></div><div style="text-align:right"><span style="font-size:0.75rem; color:var(--text-muted)">📍 ${appCache.locations[t.locationId]?.name||'N/D'}</span></div></div><div class="card-title" onclick="window.openTaskDetail('${t.id}')" style="cursor:pointer;">${t.title}</div><div class="entity-tags" style="margin-bottom:10px;">${getEntTags(t.familyIds,t.organizationIds)}</div></div>`); }
-        feed.innerHTML += html;
-    } else {
-        liveTasks.filter(t=> t.requestedBy===currentUser.id || (t.familyIds||[]).some(b=>myFam.includes(b)) || (t.organizationIds||[]).some(b=>myOrgs.includes(b)))
-                 .forEach(t => {
-                     let hb = '';
-                     if(t.status === 'pending_approval' && (
-                         (t.familyIds||[]).some(b=>myFam.includes(b)) || (t.organizationIds||[]).some(b=>myOrgs.includes(b))
-                     )) hb = `<button class="btn btn-success mt-2" onclick="window.execAction('APPROVE_PROPOSED','${t.id}')" style="display:block; width:100%;">👍 Approva Task Proposto</button>`;
-                     feed.innerHTML += `<div class="card" onclick="window.openTaskDetail('${t.id}')"><div class="card-title">${t.title}</div><span class="status-badge status-${t.status} mt-2">${t.status}</span>${hb}</div>`;
-                 });
+        dashHtml += `
+        <div style="grid-column: 1 / -1; display:flex; gap:10px; margin-top:5px;">
+            <div onclick="window.apriGiornataPaolo()" class="shadow-sm" style="flex:1; background:#059669; color:white; padding:15px; border-radius:8px; display:flex; align-items:center; justify-content:center; cursor:pointer;">
+                <div style="font-weight:bold; font-size:1.1rem; text-align:center;">🕒 APRI GIORNATA</div>
+            </div>
+            <div onclick="window.chiudiGiornataPaolo()" class="shadow-sm" style="flex:1; background:#b91c1c; color:white; padding:15px; border-radius:8px; display:flex; align-items:center; justify-content:center; cursor:pointer;">
+                <div style="font-weight:bold; font-size:1.1rem; text-align:center;">🛑 CHIUDI GIORNATA</div>
+            </div>
+        </div>
+        <div style="grid-column: 1 / -1; display:flex; gap:10px; margin-top:0px;">
+            <div onclick="window.openShiftListModal('da_chiudere')" class="shadow-sm" style="flex:1; background:#f59e0b; color:white; padding:10px; border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; position:relative;">
+                <div style="font-weight:bold; font-size:0.9rem; text-align:center;">⚠️ DA CHIUDERE</div>
+                ${prevOpen>0 ? `<div style="position:absolute; top:-8px; right:-8px; background:var(--danger); color:white; border-radius:12px; padding:2px 8px; font-size:0.8rem; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.2); border:2px solid white;">${prevOpen}</div>` : ''}
+            </div>
+            <div onclick="window.openShiftListModal('chiusi')" class="shadow-sm" style="flex:1; background:#64748b; color:white; padding:10px; border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer;">
+                <div style="font-weight:bold; font-size:0.9rem; text-align:center;">✅ CHIUSI</div>
+            </div>
+        </div>
+        `;
     }
+
+    dashHtml += `</div></div><div id="dashboardListContainer" style="display:none; flex-direction:column; flex:1; overflow-y:auto; padding-bottom:50px; margin-right:-5px; padding-right:5px;"></div>`;
+    feed.innerHTML = dashHtml;
 }
 
 window.taskCalendar = null;
@@ -289,15 +245,29 @@ window.filterAgendaList = (dateStr) => {
     window.selectedAgendaDate = dateStr;
     const btn = document.getElementById('btnShowAllCards');
     const title = document.getElementById('agendaListTitle');
-    if(dateStr) {
-        if(btn) btn.style.display = 'block';
+    
+    if(dateStr === 'ALL') {
+        if(btn) btn.style.display = 'none';
+        if(title) title.innerHTML = 'Oggi e Prossimi Interventi';
+    } else if(dateStr) {
+        if(btn) {
+            btn.style.display = 'inline-block';
+            btn.className = 'btn btn-primary';
+            btn.textContent = '🌍 MOSTRA TUTTI (Oggi e Futuri)';
+            btn.onclick = () => window.filterAgendaList('ALL');
+        }
         if(title) {
             const d = new Date(dateStr);
             title.textContent = `Interventi del ${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
         }
     } else {
-        if(btn) btn.style.display = 'none';
-        if(title) title.textContent = 'Prossimi Interventi';
+        if(btn) {
+            btn.style.display = 'inline-block';
+            btn.className = 'btn btn-primary';
+            btn.textContent = '🌍 MOSTRA TUTTI (Oggi e Futuri)';
+            btn.onclick = () => window.filterAgendaList('ALL');
+        }
+        if(title) title.innerHTML = 'Scegli un Giorno o Mostra Tutti';
     }
     renderAgendaCards();
 };
@@ -329,9 +299,14 @@ function renderAgendaCards() {
         }
     }
     q = q.filter(t => t.scheduledStart && t.status !== 'completed');
+    const todayIso = new Date().toISOString().split('T')[0];
     
-    if(window.selectedAgendaDate) {
+    if(window.selectedAgendaDate === 'ALL') {
+        q = q.filter(t => t.scheduledStart.split('T')[0] >= todayIso);
+    } else if(window.selectedAgendaDate) {
         q = q.filter(t => t.scheduledStart.startsWith(window.selectedAgendaDate));
+    } else {
+        q = [];
     }
     
     q.sort((a,b)=>a.scheduledStart.localeCompare(b.scheduledStart)).forEach(t => {
@@ -344,19 +319,27 @@ function renderAgendaCards() {
         const assignedName = appCache.people[t.assignedTo]?.fullName || t.assignedTo || 'Nessuno';
         
         listEl.innerHTML += `
-        <div class="card" onclick="window.openTaskDetail('${t.id}')" style="background-color:${colors.bg}; color:${colors.text}; border-radius:12px; margin-bottom:12px; border:none;">
+        <div class="card" onclick="window.openTaskDetail('${t.id}')" style="background-color:${colors.bg}; color:${colors.text}; border-radius:12px; margin-bottom:12px; border:none; box-shadow:0 2px 4px rgba(0,0,0,0.1); cursor:pointer; padding:15px;">
             <div class="flex-between">
-                <div style="font-weight:bold; font-size:1.1rem;">🕒 ${t.scheduledStart.split('T')[1]} - ${d.getDate()}/${d.getMonth()+1}</div>
-                <div style="font-size:0.8rem; background:rgba(255,255,255,0.3); padding:3px 8px; border-radius:12px; font-weight:bold;">👤 ${assignedName}</div>
+                <div style="font-weight:bold; font-size:1.1rem; letter-spacing:0.5px;">🕒 ${t.scheduledStart.split('T')[1]} - ${d.getDate()}/${d.getMonth()+1}</div>
+                <div style="font-size:0.75rem; background:rgba(0,0,0,0.15); padding:4px 10px; border-radius:20px; font-weight:bold; text-transform:uppercase;">${assignedName}</div>
             </div>
-            <div class="card-title mt-2" style="font-weight:800; font-size:1.15rem; color:${colors.text};">${t.title} ${ur}</div>
-            <div style="font-size:0.85rem; margin-top:5px; opacity:0.95;">📍 ${loc}</div>
-            <div style="font-size:0.85rem; margin-top:5px; font-weight:800; opacity:0.95;">${window.getStatusText(t.status)}</div>
+            <div class="card-title mt-2" style="font-weight:800; font-size:1.2rem; margin-bottom:8px; line-height:1.2;">${t.title} ${ur}</div>
+            <div class="flex-between mt-2" style="font-size:0.85rem; font-weight:600;">
+                <span>📍 ${loc}</span>
+                <span style="background:rgba(255,255,255,0.25); border-radius:6px; padding:2px 8px;">${window.getStatusText(t.status)}</span>
+            </div>
         </div>`;
     });
     
     if(q.length === 0) {
-        listEl.innerHTML = `<div class="text-center text-muted" style="padding:20px;">Nessun intervento.</div>`;
+        if(window.selectedAgendaDate === 'ALL') {
+             listEl.innerHTML = `<div class="text-center text-muted" style="padding:20px;">Nessun intervento nei prossimi giorni.</div>`;
+        } else if(!window.selectedAgendaDate) {
+             listEl.innerHTML = `<div class="text-center" style="padding:40px 20px; color:var(--text-muted); background:var(--surface); border-radius:12px; border:1px dashed #ccc;">👈 Clicca su un giorno nel calendario per vedere le attività, oppure premi "Mostra Tutti".</div>`;
+        } else {
+             listEl.innerHTML = `<div class="text-center text-muted" style="padding:20px; font-weight:bold; color:var(--info);">✨ Giornata Completamente Libera!</div>`;
+        }
     }
 }
 
@@ -604,10 +587,10 @@ window.deleteLaborRate = async (id) => {
 window.addExternalWorker = async () => {
     const fullName = prompt("Inserisci il Nome e Cognome del manovale:");
     if(!fullName || !fullName.trim()) return;
-    const rate = prompt("Inserisci la tariffa giornaliera concordata (€/giorno):", "80");
+    const rate = prompt("Inserisci la tariffa oraria concordata (€/ora):", "10");
     if(!rate || isNaN(rate)) return;
     try {
-        const payload = { fullName: fullName.trim(), dailyRate: parseFloat(rate), active: true, roles: ['external_worker'] };
+        const payload = { fullName: fullName.trim(), hourlyRate: parseFloat(rate), active: true, roles: ['external_worker'] };
         const docRef = await addDoc(collection(db, 'external_workers'), payload);
         appCache['external_workers'][docRef.id] = { id: docRef.id, ...payload };
         renderDirectory();
@@ -621,12 +604,12 @@ window.editExternalWorker = async (id) => {
     if(!w) return;
     const fullName = prompt("Modifica Nome Manovale:", w.fullName);
     if(!fullName || !fullName.trim()) return;
-    const rate = prompt("Modifica Tariffa Giornaliera (€/g):", w.dailyRate);
+    const rate = prompt("Modifica Tariffa Oraria (€/ora):", w.hourlyRate || w.dailyRate);
     if(!rate || isNaN(rate)) return;
     try {
-        await updateDoc(doc(db, 'external_workers', id), { fullName: fullName.trim(), dailyRate: parseFloat(rate) });
+        await updateDoc(doc(db, 'external_workers', id), { fullName: fullName.trim(), hourlyRate: parseFloat(rate) });
         w.fullName = fullName.trim();
-        w.dailyRate = parseFloat(rate);
+        w.hourlyRate = parseFloat(rate);
         renderDirectory();
     } catch(e) {
         alert("Errore modifica: " + e.message);
@@ -687,7 +670,7 @@ function renderDirectory() {
         </div>
         <div id="dir_sec_external_workers" style="display:none; padding:15px; background:var(--bg);">
             <button class="btn btn-outline mb-3" onclick="window.addExternalWorker()" style="padding:8px; font-size:0.9rem;">➕ Aggiungi Manovale</button>
-            ${workers.map(w => `<div class="flex-between" style="padding:8px 0; border-bottom:1px dashed #ccc;"><strong style="font-size:0.95rem;">${w.fullName}</strong><div><span style="margin-right:15px; color:var(--text-muted);">€${(w.dailyRate||0).toFixed(2)}/g</span><button style="background:none; border:none; cursor:pointer;" onclick="window.editExternalWorker('${w.id}')">✏️</button><button style="background:none; border:none; cursor:pointer; margin-left:10px;" onclick="window.deleteExternalWorker('${w.id}')">🗑️</button></div></div>`).join('')}
+            ${workers.map(w => `<div class="flex-between" style="padding:8px 0; border-bottom:1px dashed #ccc;"><strong style="font-size:0.95rem;">${w.fullName}</strong><div><span style="margin-right:15px; color:var(--text-muted);">€${(w.hourlyRate||w.dailyRate||0).toFixed(2)}/h</span><button style="background:none; border:none; cursor:pointer;" onclick="window.editExternalWorker('${w.id}')">✏️</button><button style="background:none; border:none; cursor:pointer; margin-left:10px;" onclick="window.deleteExternalWorker('${w.id}')">🗑️</button></div></div>`).join('')}
             ${workers.length===0 ? '<div class="text-muted">Nessun manovale attivo.</div>' : ''}
         </div>
     </div>`;
@@ -753,22 +736,49 @@ function renderReport() {
     const rep = document.getElementById('reportContent'); if(!rep) return;
     const now = new Date();
     const todayStr = now.toISOString().split('T')[0];
+    const currYear = todayStr.slice(0,4);
+    const currMonth = todayStr.slice(0,7);
+    const currQuad = Math.floor(now.getMonth() / 4);
 
-    let paoloCompleted = 0, paoloOpen = 0, paoloOverdue = 0;
-    let visitedLocations = new Set();
+    let paoloCompleted = 0, paoloOpen = 0, paoloOverdue = 0; let visitedLocations = new Set();
     liveTasks.forEach(t => {
-        if(t.assignedTo === 'worker_paolo') {
+        if(t.assignedTo === 'paolo') {
             if(t.status === 'completed') paoloCompleted++;
             else { paoloOpen++; if(t.scheduledStart && t.scheduledStart.split('T')[0] < todayStr) paoloOverdue++; }
             if(t.locationId) visitedLocations.add(t.locationId);
         }
     });
 
+    let pHours = { day:0, week:0, month:0, quad:0, year:0 };
+    const dDay = now.getDay(); const diffToMon = now.getDate() - dDay + (dDay===0?-6:1);
+    const mon = new Date(); mon.setDate(diffToMon); const monStr = mon.toISOString().split('T')[0]; 
+
+    liveWorkSessions.filter(s => s.workerId === 'paolo' && s.type === 'paolo_shift' && s.status === 'closed').forEach(s => {
+        let hrs = 0;
+        if(s.date && s.startTime && s.endDate && s.endTime) {
+            const st = new Date(s.date + 'T' + s.startTime);
+            const en = new Date(s.endDate + 'T' + s.endTime);
+            hrs = (en - st) / 3600000;
+        } else if(s.date && s.startTime && s.endTime && !s.endDate) {
+            const st = new Date(s.date + 'T' + s.startTime);
+            const en = new Date(s.date + 'T' + s.endTime);
+            hrs = (en - st) / 3600000;
+        }
+        if(hrs < 0) return;
+
+        const shiftD = new Date(s.date);
+        if(s.date === todayStr) pHours.day += hrs;
+        if(s.date >= monStr) pHours.week += hrs;
+        if(s.date.startsWith(currMonth)) pHours.month += hrs;
+        if(s.date.startsWith(currYear) && Math.floor(shiftD.getMonth()/4) === currQuad) pHours.quad += hrs;
+        if(s.date.startsWith(currYear)) pHours.year += hrs;
+    });
+
     let expTotal = 0, expApproved = 0, expPending = 0;
     liveExpenses.forEach(e => { expTotal += e.amount; if(e.status === 'pending_approval') expPending += e.amount; if(e.status === 'approved') expApproved += e.amount; });
     
     let workerCostTotal = 0; const workerCostMap = {};
-    liveWorkSessions.forEach(w => { workerCostTotal += w.totalCost; workerCostMap[w.workerId] = (workerCostMap[w.workerId]||0) + w.totalCost; });
+    liveWorkSessions.filter(w=>w.type!=='paolo_shift').forEach(w => { workerCostTotal += (w.totalCost||0); workerCostMap[w.workerId] = (workerCostMap[w.workerId]||0) + (w.totalCost||0); });
     
     const sumsFam = {}, sumsOrg = {};
     liveExpenses.filter(e => e.status === 'approved').forEach(e => { (e.allocations||[]).forEach(a => { const t = a.type === 'family' ? sumsFam : sumsOrg; t[a.entityId] = (t[a.entityId]||0) + a.amount; }); });
@@ -784,6 +794,49 @@ function renderReport() {
             <div class="flex-between" style="padding:8px 0; border-bottom:1px solid #eee;"><span>Task Aperti</span> <strong><span class="status-badge status-assigned">${paoloOpen}</span></strong></div>
             <div class="flex-between" style="padding:8px 0; border-bottom:1px solid #eee;"><span>Task in Ritardo</span> <strong><span class="status-badge" style="background:var(--danger); color:white;">${paoloOverdue}</span></strong></div>
             <div class="flex-between" style="padding:8px 0;"><span>Luoghi unici visitati</span> <strong>${visitedLocations.size}</strong></div>
+        </div>
+
+        <div class="card mb-4" style="background:#f8fafc; border:1px solid #e2e8f0; border-left: 4px solid var(--success);">
+            <h3 style="color:var(--success); margin-bottom:10px;">⏱️ Statistiche Ore Lavorate Paolo</h3>
+            <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:15px; border-bottom:1px solid #ddd; padding-bottom:10px;">
+                Costo Fisso Concordato: <b>€ 2500 lordo / mensilità</b> (calcolato in base a ferie, permessi ecc. con std: ~135h/mese lavorabili = ~18,52 €/h)<br>
+                Premialità generata per ore extra indicate in verde.
+            </div>
+            
+            <div class="flex-between" style="padding:8px 0; border-bottom:1px solid #eee;">
+                <span><b>OGGI</b><br><span style="font-size:0.75rem; color:#888;">Target 7.5h (450m)</span></span>
+                <div style="text-align:right;">
+                    <strong>${pHours.day.toFixed(2)}h</strong>
+                    <div style="font-size:0.8rem; color:${pHours.day>7.5?'var(--success)':'var(--text-muted)'}; margin-top:3px;">${pHours.day>7.5?'+'+(pHours.day-7.5).toFixed(2)+'h extra':''}</div>
+                </div>
+            </div>
+            <div class="flex-between" style="padding:8px 0; border-bottom:1px solid #eee;">
+                <span><b>SETTIMANA IN CORSO</b></span>
+                <div style="text-align:right;">
+                    <strong>${pHours.week.toFixed(2)}h</strong>
+                </div>
+            </div>
+            <div class="flex-between" style="padding:8px 0; border-bottom:1px solid #eee;">
+                <span><b>MESE</b><br><span style="font-size:0.75rem; color:#888;">Target ~135.0h (18gg)</span></span>
+                <div style="text-align:right;">
+                    <strong>${pHours.month.toFixed(2)}h</strong>
+                    <div style="font-size:0.8rem; color:${pHours.month>135?'var(--success)':'var(--text-muted)'}; margin-top:3px;">${pHours.month>135?'+'+(pHours.month-135).toFixed(2)+'h extra':''}</div>
+                </div>
+            </div>
+            <div class="flex-between" style="padding:8px 0; border-bottom:1px solid #eee;">
+                <span><b>QUADRIMESTRE</b><br><span style="font-size:0.75rem; color:#888;">Target ~540h</span></span>
+                <div style="text-align:right;">
+                    <strong>${pHours.quad.toFixed(2)}h</strong>
+                    <div style="font-size:0.8rem; color:${pHours.quad>540?'var(--success)':'var(--text-muted)'}; margin-top:3px;">${pHours.quad>540?'+'+(pHours.quad-540).toFixed(2)+'h extra':''}</div>
+                </div>
+            </div>
+            <div class="flex-between" style="padding:8px 0;">
+                <span><b>ANNO CORRENTE</b><br><span style="font-size:0.75rem; color:#888;">Target ~1620h</span></span>
+                <div style="text-align:right;">
+                    <strong>${pHours.year.toFixed(2)}h</strong>
+                    <div style="font-size:0.8rem; color:${pHours.year>1620?'var(--success)':'var(--text-muted)'}; margin-top:3px;">${pHours.year>1620?'+'+(pHours.year-1620).toFixed(2)+'h extra':''}</div>
+                </div>
+            </div>
         </div>
 
         <div class="card mb-4" style="background:#f8fafc; border:1px solid #e2e8f0;">
@@ -1033,7 +1086,7 @@ window.openNewRequestWizard = (taskIdToEdit = null) => {
     }
     
     // Costruisci le opzioni dei tecnici escludendo Luca
-    const wOpts = Object.values(appCache.people).filter(p=>p.roles.includes('technician') && p.id !== 'worker_luca').map(p=>`<option value="${p.id}" ${t && t.assignedTo===p.id?'selected':(!t && currentUser.id===p.id?'selected':(p.id==='worker_paolo'?'selected':''))}>${p.fullName||p.name}</option>`).join('');
+    const wOpts = Object.values(appCache.people).filter(p=>p.roles.includes('technician') && p.id !== 'worker_luca' && !p.id.toLowerCase().includes('luca') && !(p.fullName||p.name||'').toLowerCase().includes('luca')).map(p=>`<option value="${p.id}" ${t && t.assignedTo===p.id?'selected':(!t && currentUser.id===p.id?'selected':(p.id==='worker_paolo'?'selected':''))}>${p.fullName||p.name}</option>`).join('');
 
     b.innerHTML = `<form id="wizF" data-edit-id="${taskIdToEdit||''}">
         <input type="text" id="rt" placeholder="Titolo" value="${t ? t.title : ''}" required>
@@ -1414,29 +1467,59 @@ window.openWorkerSessionWizard = () => {
     const myTodayTasks = liveTasks.filter(t=>t.assignedTo===currentUser.id && t.status!=='completed');
     const taskChecks = myTodayTasks.map(t=>`<label class="check-item"><input type="checkbox" value="${t.id}"> ${t.title}</label>`).join('');
     if(myTodayTasks.length===0) return alert("Non hai task attivi a cui associare il manovale!");
-    const wOpts = Object.values(appCache.external_workers).filter(w=>w.active && w.id !== 'worker_luca').map(w=>`<option value="${w.id}" data-rate="${w.dailyRate}">${w.fullName}</option>`).join('');
+    const wOpts = Object.values(appCache.external_workers).filter(w=>w.active && w.id !== 'worker_luca').map(w=>`<option value="${w.id}" data-rate="${w.hourlyRate||w.dailyRate||0}">${w.fullName}</option>`).join('');
     b.innerHTML = `<form id="wwF">
         <label>Seleziona Manovale</label>
         <select id="wwn" required><option value="">-- Scegliere Manovale --</option>${wOpts}</select>
-        <label>Costo Giornaliero Concordato (€)</label><input type="number" id="wwc" step="1" placeholder="Es. 80" required>
+        <div style="display:flex; gap:10px;">
+            <div style="flex:1;"><label>Orario Inizio</label><input type="time" id="wwst" required></div>
+            <div style="flex:1;"><label>Orario Fine</label><input type="time" id="wwen" required></div>
+        </div>
+        <input type="hidden" id="wwhr" value="0">
+        <label>Costo Totale Stimato (€) <em>(Modificabile)</em></label><input type="number" id="wwc" step="0.01" required>
         <label>Data Operazione</label><input type="date" id="wwd" value="${new Date().toISOString().split('T')[0]}" required>
         <label>Seleziona i Task in cui ha aiutato (obbligatorio):</label>
         <div style="max-height:150px; overflow-y:auto; border:1px solid #ccc; padding:10px;">${taskChecks}</div>
         <button type="submit" class="btn btn-success mt-4">Salva Sessione Lavoro</button>
     </form>`;
+
+    const calcCost = () => {
+        const st = b.querySelector('#wwst').value;
+        const en = b.querySelector('#wwen').value;
+        const hr = parseFloat(b.querySelector('#wwhr').value) || 0;
+        if(st && en) {
+            const dateStr = '1970-01-01T';
+            const diff = (new Date(dateStr + en + ':00Z') - new Date(dateStr + st + ':00Z')) / 3600000;
+            if(diff > 12) {
+                alert("Errore: Impossibile registrare attività con durata superiore a 12 ore continue.");
+                b.querySelector('#wwen').value = '';
+                b.querySelector('#wwc').value = '0.00';
+            } else if(diff > 0) {
+                b.querySelector('#wwc').value = (diff * hr).toFixed(2);
+            }
+        }
+    };
+
+    b.querySelector('#wwst').addEventListener('change', calcCost);
+    b.querySelector('#wwen').addEventListener('change', calcCost);
+
     b.querySelector('#wwn').addEventListener('change', (e) => {
         const o = e.target.options[e.target.selectedIndex];
-        if(o && o.dataset.rate) b.querySelector('#wwc').value = o.dataset.rate;
+        if(o && o.dataset.rate) b.querySelector('#wwhr').value = o.dataset.rate;
+        calcCost();
     });
     b.querySelector('#wwF').addEventListener('submit', async(e)=>{
         e.preventDefault();
         const tks = Array.from(b.querySelectorAll('input[type=checkbox]:checked')).map(x=>x.value);
         if(tks.length===0) return alert("Devi associare il manovale ad almeno un task!");
         const amt = parseFloat(b.querySelector('#wwc').value);
+        const st = b.querySelector('#wwst').value;
+        const en = b.querySelector('#wwen').value;
         const wId = b.querySelector('#wwn').value;
+        const hr = parseFloat(b.querySelector('#wwhr').value) || 0;
         const wName = appCache.external_workers[wId]?.fullName || wId;
         const sessionDt = b.querySelector('#wwd').value || new Date().toISOString().split('T')[0];
-        const nw = await addDoc(collection(db,"work_sessions"),{workerId:wId, date:sessionDt, assignedBy:currentUser.id, tasks:tks, dailyRate:amt, totalCost:amt, status:'worked', allocations:[], createdAt:serverTimestamp()});
+        const nw = await addDoc(collection(db,"work_sessions"),{workerId:wId, date:sessionDt, startTime:st, endTime:en, hourlyRate:hr, assignedBy:currentUser.id, tasks:tks, totalCost:amt, status:'worked', allocations:[], createdAt:serverTimestamp()});
         for(let tid of tks) {
             const tkObj = liveTasks.find(x=>x.id===tid);
             if(tkObj) {
@@ -1678,6 +1761,210 @@ window.editExpense = async (id) => {
     } catch(err) { alert("Errore modifica: " + err.message); }
 };
 
+window.openSimpleListModal = (filterType) => {
+    let tasks = [];
+    const todayIso = new Date().toISOString().split('T')[0];
+    const tmrwObj = new Date(); tmrwObj.setDate(tmrwObj.getDate() + 1);
+    const tmrwIso = tmrwObj.toISOString().split('T')[0];
+
+    liveTasks.forEach(t => {
+        if(t.status === 'completed' || t.status === 'accounted') return;
+        let match = false;
+        if(filterType === 'unprogrammed') { if(!t.scheduledStart) match = true; }
+        else if(filterType === 'programmed') { if(t.scheduledStart) match = true; }
+        else if(filterType === 'oggi') { if(t.scheduledStart && t.scheduledStart.startsWith(todayIso)) match = true; }
+        else if(filterType === 'domani') { if(t.scheduledStart && t.scheduledStart.startsWith(tmrwIso)) match = true; }
+        if(match) tasks.push(t);
+    });
+
+    tasks.sort((a,b)=>(a.scheduledStart||'').localeCompare(b.scheduledStart||''));
+
+    let html = '';
+    tasks.forEach(t => {
+        let colors = { bg: '#ffffff', text: '#000000' };
+        let dateLbl = 'Non Programmato';
+        if(t.scheduledStart) {
+            const dStr = t.scheduledStart.split('T')[0];
+            const d = new Date(dStr);
+            colors = DAY_COLORS[d.getDay()] || { bg: '#e2e8f0', text: '#0f172a' };
+            dateLbl = `🕒 ${t.scheduledStart.split('T')[1]||''} - ${d.getDate()}/${d.getMonth()+1}`;
+        } else {
+            colors = { bg: '#e2e8f0', text: '#0f172a' };
+        }
+        
+        const loc = appCache.locations[t.locationId]?.name || 'N/D';
+        const ur = (t.priority === 'urgent' || t.priority === 'high') ? `<span class="status-badge badge-urgent" style="margin-left:5px;">🚨 URGENTE</span>` : '';
+        const assignedName = appCache.people[t.assignedTo]?.fullName || appCache.people[t.assignedTo]?.name || t.assignedTo || 'Nessuno';
+
+        html += `
+        <div class="card mb-2" onclick="window.openTaskDetail('${t.id}')" style="background-color:${colors.bg}; color:${colors.text}; border-radius:12px; border:none; box-shadow:0 2px 4px rgba(0,0,0,0.1); cursor:pointer; padding:15px;">
+            <div class="flex-between">
+                <div style="font-weight:bold; font-size:1.1rem; letter-spacing:0.5px;">${dateLbl}</div>
+                <div style="font-size:0.75rem; background:rgba(0,0,0,0.15); padding:4px 10px; border-radius:20px; font-weight:bold; text-transform:uppercase;">${assignedName}</div>
+            </div>
+            <div class="card-title mt-2" style="font-weight:800; font-size:1.2rem; margin-bottom:8px; line-height:1.2;">${t.title} ${ur}</div>
+            <div class="flex-between mt-2" style="font-size:0.85rem; font-weight:600;">
+                <span>📍 ${loc}</span>
+                <span style="background:rgba(255,255,255,0.25); border-radius:6px; padding:2px 8px;">${window.getStatusText(t.status)}</span>
+            </div>
+        </div>`;
+    });
+    
+    if(tasks.length === 0) html = '<div class="text-muted text-center p-3">Nessun task trovato per questa vista.</div>';
+
+    const labels = { 'unprogrammed': 'Non Programmati (DA FARE)', 'programmed': 'Programmati', 'oggi': 'Task di Oggi', 'domani': 'Task di Domani' };
+    
+    const lc = document.getElementById('dashboardListContainer');
+    const gc = document.getElementById('dashboardGridContainer');
+    
+    if(lc && gc) {
+        gc.style.display = 'none';
+        
+        let wrapper = `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; position:sticky; top:0; background:var(--bg); z-index:10; padding:10px 0; border-bottom:1px solid #ddd;">
+               <h3 style="margin:0; font-size:1.1rem; color:var(--text-main); font-weight:bold;">${labels[filterType] || filterType}</h3>
+               <button class="btn btn-secondary" onclick="document.getElementById('dashboardListContainer').style.display='none'; document.getElementById('dashboardGridContainer').style.display='block';" style="padding:6px 12px; font-weight:bold; width:auto; border-radius:20px;">⬅️ Torna Indietro</button>
+            </div>
+            <div>
+                ${html}
+            </div>
+        `;
+        lc.innerHTML = wrapper;
+        lc.style.display = 'flex';
+        const sm = document.getElementById('simpleListModal'); if(sm) sm.classList.remove('open');
+    }
+};
+
+window.openShiftListModal = (type) => {
+    const todayIso = new Date().toISOString().split('T')[0];
+    let shifts = liveWorkSessions.filter(s => s.workerId === 'paolo' && s.type === 'paolo_shift');
+    if(type === 'chiusi') {
+        shifts = shifts.filter(s => s.status === 'closed').sort((a,b)=>b.date.localeCompare(a.date)).slice(0, 50); // limit to 50
+    } else {
+        shifts = shifts.filter(s => s.status === 'open' && s.date < todayIso).sort((a,b)=>a.date.localeCompare(b.date));
+    }
+    
+    let html = '';
+    shifts.forEach(s => {
+        let title = `Giornata del ${s.date.split('-').reverse().join('/')}`;
+        let sub = `Inizio: ${s.startTime}`;
+        if(s.status === 'closed') {
+            const hrs = ((new Date(s.endDate+'T'+s.endTime) - new Date(s.date+'T'+s.startTime))/3600000).toFixed(1);
+            sub += ` - Fine: ${s.endTime} (${hrs}h)`;
+        } else {
+            sub += ` <span style="color:var(--danger); font-weight:bold;">(Dimenticata Aperta!)</span>`;
+        }
+        
+        html += `<div class="card mb-2 shadow-sm" onclick="window.chiudiGiornataPaolo(); document.getElementById('simpleListModal').classList.remove('open')" style="cursor:pointer; border-left:4px solid var(--${s.status==='closed'?'success':'danger'});">
+            <div style="font-weight:bold; font-size:1rem;">${title}</div>
+            <div style="font-size:0.8rem; color:var(--text-muted);">${sub}</div>
+        </div>`;
+    });
+    if(shifts.length === 0) html = '<div class="text-muted text-center p-3">Nessun turno trovato.</div>';
+    
+    if(!document.getElementById('simpleListModal')) {
+        const d = document.createElement('div');
+        d.id = 'simpleListModal'; d.className = 'bottom-sheet';
+        d.innerHTML = `<div class="bottom-sheet-content"><div class="bottom-sheet-header"><h2 id="slmTitle">Lista</h2><button class="btn-close" onclick="document.getElementById('simpleListModal').classList.remove('open')">×</button></div><div class="bottom-sheet-body" id="slmBody" style="max-height:60vh; overflow-y:auto; padding:15px; background:var(--bg)"></div></div>`;
+        document.body.appendChild(d);
+    }
+    document.getElementById('slmTitle').textContent = type==='chiusi' ? 'Giornate Chiuse (Ultime 50)' : '⚠️ Da Chiudere (Turni Precedenti)';
+    document.getElementById('slmBody').innerHTML = html;
+    document.getElementById('simpleListModal').classList.add('open');
+};
+
+window.apriGiornataPaolo = () => {
+    const b = document.getElementById('wizardBody'); document.getElementById('wizardTitle').textContent="Apri Giornata";
+    b.innerHTML = `
+        <form id="paoloOpenForm">
+            <label>Data di Inizio (modificabile):</label>
+            <input type="date" id="pOpenDate" value="${new Date().toISOString().split('T')[0]}" required>
+            <label>Ora di Inizio:</label>
+            <input type="time" id="pOpenTime" value="${new Date().toTimeString().slice(0,5)}" required>
+            <button type="submit" class="btn btn-success mt-4 w-100">Registra Inizio Turno</button>
+        </form>
+    `;
+    b.querySelector('#paoloOpenForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const d = b.querySelector('#pOpenDate').value;
+        const t = b.querySelector('#pOpenTime').value;
+        await addDoc(collection(db, "work_sessions"), { workerId: "paolo", type: "paolo_shift", status: "open", date: d, startTime: t, createdAt: serverTimestamp() });
+        alert("Giornata aperta!");
+        document.getElementById('actionWizardModal').classList.remove('open'); document.getElementById('bsBackdrop').classList.remove('open');
+    });
+    document.getElementById('bsBackdrop').classList.add('open'); document.getElementById('actionWizardModal').classList.add('open');
+};
+
+window.chiudiGiornataPaolo = () => {
+    const b = document.getElementById('wizardBody'); document.getElementById('wizardTitle').textContent="Chiudi Giornata";
+    
+    const openShifts = liveWorkSessions.filter(s => s.workerId === 'paolo' && s.type === 'paolo_shift' && s.status === 'open');
+    let shiftOpts = '';
+    if(openShifts.length === 0) {
+        shiftOpts = '<option value="">-- Nessuna giornata aperta --</option>';
+    } else {
+        shiftOpts = openShifts.map(s => {
+            const dataParts = s.date.split('-'); const itDate = dataParts[2]+'/'+dataParts[1]+'/'+dataParts[0];
+            return `<option value="${s.id}">Iniziata il ${itDate} alle ${s.startTime}</option>`;
+        }).join('');
+    }
+
+    b.innerHTML = `
+        <form id="paoloCloseForm">
+            <label>Seleziona Turno da chiudere:</label>
+            <select id="pCloseShift">${shiftOpts}<option value="NEW">Voglio registrarne una del tutto chiusa (Retroattiva)</option></select>
+            <div id="pretro" style="display:none; background:#f5f5f5; padding:10px; margin-top:10px; border-radius:5px;">
+                <label>Data di Inizio:</label>
+                <input type="date" id="pCloseDateRetro" value="${new Date().toISOString().split('T')[0]}">
+                <label>Ora di Inizio:</label>
+                <input type="time" id="pCloseTimeRetro" value="08:00">
+            </div>
+            
+            <label class="mt-3">Data di Fine:</label>
+            <input type="date" id="pCloseDate" value="${new Date().toISOString().split('T')[0]}" required>
+            <label>Ora di Fine:</label>
+            <input type="time" id="pCloseTime" value="${new Date().toTimeString().slice(0,5)}" required>
+            <button type="submit" class="btn btn-danger mt-4 w-100">Registra Fine Turno</button>
+        </form>
+    `;
+    b.querySelector('#pCloseShift').addEventListener('change', (e) => {
+        b.querySelector('#pretro').style.display = e.target.value === 'NEW' ? 'block' : 'none';
+    });
+    if(openShifts.length === 0) {
+        b.querySelector('#pCloseShift').value = 'NEW';
+        b.querySelector('#pretro').style.display = 'block';
+    }
+
+    b.querySelector('#paoloCloseForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const sid = b.querySelector('#pCloseShift').value;
+        const ed = b.querySelector('#pCloseDate').value;
+        const et = b.querySelector('#pCloseTime').value;
+
+        if(!sid || sid === 'NEW') {
+            const sd = b.querySelector('#pCloseDateRetro').value;
+            const st = b.querySelector('#pCloseTimeRetro').value;
+            const diffHrs = (new Date(ed + 'T' + et) - new Date(sd + 'T' + st)) / 3600000;
+            if(diffHrs > 12) return alert("Errore: Non puoi registrare un'attività superiore a 12 ore continue.");
+            if(diffHrs <= 0) return alert("Errore: L'orario di fine è antecedente all'inizio.");
+
+            await addDoc(collection(db, "work_sessions"), { workerId: "paolo", type: "paolo_shift", status: "closed", date: sd, startTime: st, endDate: ed, endTime: et, createdAt: serverTimestamp() });
+        } else {
+            const sObj = openShifts.find(x => x.id === sid);
+            const diffHrs = (new Date(ed + 'T' + et) - new Date(sObj.date + 'T' + sObj.startTime)) / 3600000;
+            if(diffHrs > 12) return alert("Errore: Non puoi chiudere un'attività superando 12 ore continue.");
+            if(diffHrs <= 0) return alert("Errore: L'orario di fine è antecedente all'inizio registrato.");
+
+            await updateDoc(doc(db, "work_sessions", sid), { status: "closed", endDate: ed, endTime: et });
+        }
+        alert("Giornata chiusa con successo!");
+        document.getElementById('actionWizardModal').classList.remove('open'); document.getElementById('bsBackdrop').classList.remove('open');
+        renderReport();
+        renderHome();
+    });
+    document.getElementById('bsBackdrop').classList.add('open'); document.getElementById('actionWizardModal').classList.add('open');
+};
+
 window.openPivotModal = (filterType) => {
     let tasks = [];
     const todayIso = new Date().toISOString().split('T')[0];
@@ -1701,6 +1988,9 @@ window.openPivotModal = (filterType) => {
         if(!canSee(t)) return;
         
         let match = false;
+        const tmrwObj = new Date(); tmrwObj.setDate(tmrwObj.getDate() + 1);
+        const tmrwIso = tmrwObj.toISOString().split('T')[0];
+
         if(filterType === 'all') match = true;
         else if (filterType === 'completed') { if(t.status === 'completed') match = true; }
         else if (filterType === 'accounted') { if(t.status === 'accounted') match = true; }
@@ -1713,6 +2003,9 @@ window.openPivotModal = (filterType) => {
             else if(filterType === 'medium') { if(t.priority==='medium' || !t.priority) match=true; }
             else if(filterType === 'low') { if(t.priority==='low') match=true; }
             else if(filterType === 'scheduled') { if(t.scheduledStart) match=true; }
+            else if(filterType === 'todo') match = true;
+            else if(filterType === 'oggi') { if(t.scheduledStart && t.scheduledStart.startsWith(todayIso)) match = true; }
+            else if(filterType === 'domani') { if(t.scheduledStart && t.scheduledStart.startsWith(tmrwIso)) match = true; }
         }
         if(match) tasks.push(t);
     });
@@ -1720,7 +2013,8 @@ window.openPivotModal = (filterType) => {
     const labels = {
         'high': 'Alta Priorità', 'medium': 'Media Priorità', 'low': 'Bassa Priorità',
         'scheduled': 'Programmati', 'all': 'Tutti i Task', 'completed': 'Tutti Completati', 'accounted': 'Contabilizzati',
-        'today': 'Completati/Contab. Oggi', 'week': 'Complessivi (7gg)', 'month': 'Mensilità', 'year': "Quest'Anno"
+        'today': 'Completati/Contab. Oggi', 'week': 'Complessivi (7gg)', 'month': 'Mensilità', 'year': "Quest'Anno",
+        'todo': 'DA FARE', 'oggi': 'Task di Oggi', 'domani': 'Task di Domani'
     };
     document.getElementById('pivotTitle').textContent = `Pivot: ${labels[filterType] || filterType}`;
     document.getElementById('pivotModal').classList.add('open');

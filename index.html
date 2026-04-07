@@ -62,28 +62,28 @@
     <!-- VIEWS -->
     
     <!-- View 1: Tasks / Home (Worker & Admin) -->
-    <main id="view-home" class="view-section active">
-        <div id="homeAdminStats" class="hidden" style="margin-bottom:15px;">
+    <main id="view-home" class="view-section active" style="height: calc(100vh - 140px); overflow:hidden; display:flex; flex-direction:column;">
+        <div id="homeAdminStats" class="hidden" style="margin-bottom:15px; flex-shrink:0;">
             <!-- For Admin: brief summary of requests / tasks -->
         </div>
-        <div id="feedList">
+        <div id="feedList" style="flex:1; overflow:hidden; display:flex; flex-direction:column; padding-bottom:10px;">
             <div class="text-center" style="color:var(--text-muted); margin-top:40px;">Caricamento...</div>
         </div>
     </main>
 
     <!-- View 2: Messa in Opera / Calendario -->
-    <main id="view-agenda" class="view-section flex-view" style="padding:10px; height: calc(100vh - 140px); overflow-y:auto;">
+    <main id="view-agenda" class="view-section flex-view" style="padding:10px; height: calc(100vh - 140px); overflow:hidden;">
         <div class="flex-between mb-2" style="flex-shrink:0;">
             <h2>Calendario</h2>
             <button id="btnWorkerSessionCal" class="btn btn-secondary" style="width:auto; padding:8px 15px; font-size:0.85rem; display:none;" onclick="window.openWorkerSessionWizard()">👨‍🔧 Giornata Manovale</button>
         </div>
-        <div id="calendarContainer" style="flex-shrink:0; background:white; border-radius:12px; overflow:hidden; padding:10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); min-height:450px; margin-bottom:20px;"></div>
+        <div id="calendarContainer" style="flex-shrink:0; background:white; border-radius:12px; overflow:hidden; padding:10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); height:450px; margin-bottom:20px;"></div>
         
         <div class="flex-between mb-2" style="flex-shrink:0;">
             <h3 id="agendaListTitle">Prossimi Interventi</h3>
             <button id="btnShowAllCards" class="btn btn-outline" style="font-size:0.75rem; padding:4px 8px; display:none;" onclick="window.filterAgendaList(null)">Mostra Tutti</button>
         </div>
-        <div id="agendaList" style="flex:1; padding-bottom:30px;"></div>
+        <div id="agendaList" style="flex:1; overflow-y:auto; padding-bottom:30px; margin-right:-5px; padding-right:5px;"></div>
     </main>
 
     <!-- View 3: Allocazioni / Cassa -->
